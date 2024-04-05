@@ -49,7 +49,7 @@ public class DocumentServiceDefault implements DocumentService {
 
         //TODO: Cambiar por llamada a CollectionId.name
         InputStream stream = remoteFileService.getObject("mentconnect", "chunk/" + chunk.getFilename());
-
+ 
         String content = IOUtils.toString(stream, StandardCharsets.UTF_8);
 
         DocumentChunkContentDto result = mapper.map(chunk, DocumentChunkContentDto.class);
