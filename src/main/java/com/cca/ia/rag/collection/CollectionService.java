@@ -14,5 +14,5 @@ public interface CollectionService {
      */
     List<CollectionEntity> findAll();
 
-    CollectionEntity update(CollectionDto data);
+    CollectionEntity save(CollectionDto data);
 }

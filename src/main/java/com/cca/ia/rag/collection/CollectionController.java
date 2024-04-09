@@ -45,9 +45,9 @@ public class CollectionController {
      * @return
      */
     @RequestMapping(path = "", method = RequestMethod.POST)
-    public CollectionDto update(@RequestBody CollectionDto data) {
+    public CollectionDto save(@RequestBody CollectionDto data) {
 
-        CollectionEntity collection = this.collectionService.update(data);
+        CollectionEntity collection = this.collectionService.save(data);
         return mapper.map(collection, CollectionDto.class);
     }
 

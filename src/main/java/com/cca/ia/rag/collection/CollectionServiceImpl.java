@@ -24,9 +24,11 @@ public class CollectionServiceImpl implements CollectionService {
 
     @Override
     @Transactional
-    public CollectionEntity update(CollectionDto data) {
+    public CollectionEntity save(CollectionDto data) {
         CollectionEntity collection = new CollectionEntity();
-        collection.setId(data.getId());
+        if (data.getId() != null) {
+            collection.setId(data.getId());
+        }
         collection.setDescription(data.getDescription());
         collection.setName(data.getName());
         return this.collectionRepository.save(collection);
