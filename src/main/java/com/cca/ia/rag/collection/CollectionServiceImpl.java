@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.cca.ia.rag.collection.model.CollectionDto;
 import com.cca.ia.rag.collection.model.CollectionEntity;
 
 import jakarta.transaction.Transactional;
@@ -19,6 +20,16 @@ public class CollectionServiceImpl implements CollectionService {
     @Override
     public List<CollectionEntity> findAll() {
         return (List<CollectionEntity>) this.collectionRepository.findAll();
+    }
+
+    @Override
+    @Transactional
+    public CollectionEntity update(CollectionDto data) {
+        CollectionEntity collection = new CollectionEntity();
+        collection.setId(data.getId());
+        collection.setDescription(data.getDescription());
+        collection.setName(data.getName());
+        return this.collectionRepository.save(collection);
     }
 
 }

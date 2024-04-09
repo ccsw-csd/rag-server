@@ -2,6 +2,7 @@ package com.cca.ia.rag.collection;
 
 import java.util.List;
 
+import com.cca.ia.rag.collection.model.CollectionDto;
 import com.cca.ia.rag.collection.model.CollectionEntity;
 
 public interface CollectionService {
@@ -12,4 +13,6 @@ public interface CollectionService {
      * @return {@link List} de {@link CollectionEntity}
      */
     List<CollectionEntity> findAll();
+
+    CollectionEntity update(CollectionDto data);
 }

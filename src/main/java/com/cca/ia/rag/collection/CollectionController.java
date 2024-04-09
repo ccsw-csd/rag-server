@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -37,6 +38,17 @@ public class CollectionController {
 
         return collections.stream().map(e -> mapper.map(e, CollectionDto.class)).collect(Collectors.toList());
 
+    }
+
+    /**
+     * @param data
+     * @return
+     */
+    @RequestMapping(path = "", method = RequestMethod.POST)
+    public CollectionDto update(@RequestBody CollectionDto data) {
+
+        CollectionEntity collection = this.collectionService.update(data);
+        return mapper.map(collection, CollectionDto.class);
     }
 
 }
