@@ -1,5 +1,7 @@
 package com.cca.ia.rag.document;
 
+import com.cca.ia.rag.collection.CollectionService;
+import com.cca.ia.rag.collection.model.CollectionEntity;
 import com.cca.ia.rag.document.model.DocumentChunkContentDto;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import com.cca.ia.rag.document.model.DocumentEntity;
@@ -26,10 +28,14 @@ public class DocumentServiceDefault implements DocumentService {
     private RemoteFileService remoteFileService;
 
     @Autowired
+    private CollectionService collectionService;
+
+    @Autowired
     private ModelMapper mapper;
 
     @Override
     public List<DocumentEntity> getDocuments(Long collectionId) {
+
         return documentRepository.findByCollectionId(collectionId);
     }
 
@@ -47,9 +53,9 @@ public class DocumentServiceDefault implements DocumentService {
             return null;
         }
 
-        //TODO: Cambiar por llamada a CollectionId.name
-        InputStream stream = remoteFileService.getObject("mentconnect", "chunk/" + chunk.getFilename());
- 
+        CollectionEntity collection = collectionService.findById(chunk.getDocument().getCollectionId());
+        InputStream stream = remoteFileService.getObject(collection.getName(), "chunk/" + chunk.getFilename());
+
         String content = IOUtils.toString(stream, StandardCharsets.UTF_8);
 
         DocumentChunkContentDto result = mapper.map(chunk, DocumentChunkContentDto.class);

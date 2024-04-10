@@ -1,29 +1,25 @@
 package com.cca.ia.rag.collection;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
+import com.cca.ia.rag.collection.model.CollectionDto;
+import com.cca.ia.rag.collection.model.CollectionEntity;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.cca.ia.rag.collection.model.CollectionDto;
-import com.cca.ia.rag.collection.model.CollectionEntity;
+import java.util.List;
+import java.util.stream.Collectors;
 
-@RequestMapping(value = "/collection")
 @RestController
-@CrossOrigin(origins = "*")
+@RequestMapping(value = "/collection")
 public class CollectionController {
 
     @Autowired
     private CollectionService collectionService;
 
     @Autowired
-    ModelMapper mapper;
+    private ModelMapper mapper;
 
     /**
      * Método para recuperar todos los collection
@@ -43,12 +39,13 @@ public class CollectionController {
     /**
      * @param data
      * @return
-     */
-    @RequestMapping(path = "", method = RequestMethod.POST)
-    public CollectionDto save(@RequestBody CollectionDto data) {
 
-        CollectionEntity collection = this.collectionService.save(data);
-        return mapper.map(collection, CollectionDto.class);
-    }
+     @RequestMapping(path = "", method = RequestMethod.POST)
+     public CollectionDto save(@RequestBody CollectionDto data) {
+
+     CollectionEntity collection = this.collectionService.save(data);
+     return mapper.map(collection, CollectionDto.class);
+     }
+     */
 
 }

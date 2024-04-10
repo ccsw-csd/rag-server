@@ -1,9 +1,8 @@
 package com.cca.ia.rag.collection;
 
-import java.util.List;
-
-import com.cca.ia.rag.collection.model.CollectionDto;
 import com.cca.ia.rag.collection.model.CollectionEntity;
+
+import java.util.List;
 
 public interface CollectionService {
 
@@ -14,5 +13,11 @@ public interface CollectionService {
      */
     List<CollectionEntity> findAll();
 
-    CollectionEntity save(CollectionDto data);
+    /**
+     * Método para recuperar un collection por su id
+     * @param id
+     * @return
+     */
+    CollectionEntity findById(Long id);
+
 }

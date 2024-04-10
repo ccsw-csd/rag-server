@@ -4,7 +4,7 @@ public class DocumentChunkContentDto {
 
     private Long id;
     private Long order;
-    private String splitFile;
+    private String filename;
 
     private String content;
 
@@ -24,12 +24,12 @@ public class DocumentChunkContentDto {
         this.order = order;
     }
 
-    public String getSplitFile() {
-        return splitFile;
+    public String getFilename() {
+        return filename;
     }
 
-    public void setSplitFile(String splitFile) {
-        this.splitFile = splitFile;
+    public void setFilename(String filename) {
+        this.filename = filename;
     }
 
     public String getContent() {

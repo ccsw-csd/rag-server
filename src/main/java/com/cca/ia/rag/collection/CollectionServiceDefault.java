@@ -1,30 +1,36 @@
 package com.cca.ia.rag.collection;
 
-import java.util.List;
-
+import com.cca.ia.rag.collection.model.CollectionEntity;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.cca.ia.rag.collection.model.CollectionDto;
-import com.cca.ia.rag.collection.model.CollectionEntity;
-
-import jakarta.transaction.Transactional;
+import java.util.List;
 
 @Service
 @Transactional
-public class CollectionServiceImpl implements CollectionService {
+public class CollectionServiceDefault implements CollectionService {
 
     @Autowired
     CollectionRepository collectionRepository;
 
     @Override
     public List<CollectionEntity> findAll() {
+
         return (List<CollectionEntity>) this.collectionRepository.findAll();
     }
 
     @Override
+    public CollectionEntity findById(Long id) {
+
+        return this.collectionRepository.findById(id).orElse(null);
+    }
+
+    /*
+    @Override
     @Transactional
     public CollectionEntity save(CollectionDto data) {
+
         CollectionEntity collection = new CollectionEntity();
         if (data.getId() != null) {
             collection.setId(data.getId());
@@ -33,5 +39,7 @@ public class CollectionServiceImpl implements CollectionService {
         collection.setName(data.getName());
         return this.collectionRepository.save(collection);
     }
+
+     */
 
 }

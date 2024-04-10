@@ -1,5 +1,7 @@
 package com.cca.ia.rag.document.parser;
 
+import com.cca.ia.rag.collection.CollectionService;
+import com.cca.ia.rag.collection.model.CollectionEntity;
 import com.cca.ia.rag.document.DocumentChunkRepository;
 import com.cca.ia.rag.document.DocumentRepository;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
@@ -29,6 +31,9 @@ public class DocumentParserServiceDefault implements DocumentParserService {
     @Autowired
     private RemoteFileService remoteFileService;
 
+    @Autowired
+    private CollectionService collectionService;
+
     @Override
     @Transactional(readOnly = false)
     public void parse(DocumentParserDto dto) throws Exception {
@@ -48,9 +53,7 @@ public class DocumentParserServiceDefault implements DocumentParserService {
 
     private void deleteDocumentsAndChunks(Long collectionId, String filename) throws Exception {
 
-        //TODO Buscamos la collection y sacamos su nombre
-        //String collectionName = document.getCollection().getName();
-        String collectionName = "mentconnect";
+        CollectionEntity collection = collectionService.findById(collectionId);
 
         List<DocumentEntity> documents = documentRepository.findByCollectionIdAndFilename(collectionId, filename);
 
@@ -59,7 +62,7 @@ public class DocumentParserServiceDefault implements DocumentParserService {
             List<DocumentChunkEntity> chunks = documentChunkRepository.findByDocumentId(document.getId());
 
             for (DocumentChunkEntity chunk : chunks) {
-                remoteFileService.deleteObject(collectionName, "chunk/" + chunk.getFilename());
+                remoteFileService.deleteObject(collection.getName(), "chunk/" + chunk.getFilename());
                 documentChunkRepository.delete(chunk);
             }
 
@@ -72,8 +75,7 @@ public class DocumentParserServiceDefault implements DocumentParserService {
     private void parsePdfDocument(DocumentParserDto dto) throws Exception {
 
         Long collectionId = dto.getCollectionId();
-        //TODO: Buscamos la collection y sacamos su nombre
-        String collectionName = "mentconnect";
+        CollectionEntity collection = collectionService.findById(collectionId);
 
         String filename = dto.getFilename();
 
@@ -89,15 +91,14 @@ public class DocumentParserServiceDefault implements DocumentParserService {
         documentRepository.save(documentEntity);
 
         if (parseType.contains("chunk"))
-            pdfDocumentParser.parseAndPersist(documentEntity, collectionName, filename);
-        
+            pdfDocumentParser.parseAndPersist(documentEntity, collection.getName(), filename);
+
     }
 
     private DocumentEntity loadDocument(DocumentParserDto dto) throws Exception {
 
-        //TODO: Cambiar por llamada a CollectionId.id
         Long collectionId = dto.getCollectionId();
-        String collectionName = "mentconnect";
+        CollectionEntity collection = collectionService.findById(collectionId);
         String filename = dto.getFilename();
 
         DocumentEntity documentEntity = new DocumentEntity();
@@ -107,8 +108,8 @@ public class DocumentParserServiceDefault implements DocumentParserService {
         documentEntity.setStatus(DocumentEntity.DocumentStatus.PROCESING);
         documentRepository.save(documentEntity);
 
-        Resource resource = new InputStreamResource(remoteFileService.getObject(collectionName, filename));
-        remoteFileService.putObject(resource.getInputStream(), collectionName, "storage/" + filename);
+        Resource resource = new InputStreamResource(remoteFileService.getObject(collection.getName(), filename));
+        remoteFileService.putObject(resource.getInputStream(), collection.getName(), "storage/" + filename);
 
         return documentEntity;
     }
