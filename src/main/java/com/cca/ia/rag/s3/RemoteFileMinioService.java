@@ -60,4 +60,16 @@ public class RemoteFileMinioService implements RemoteFileService {
         minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(pathName + "/" + objectName).build());
     }
 
+    @Override
+    public String getContent(String pathName, String objectName) throws Exception {
+
+        InputStream is = getObject(pathName, objectName);
+
+        if (is != null) {
+            return new String(is.readAllBytes());
+        }
+        
+        return null;
+    }
+
 }

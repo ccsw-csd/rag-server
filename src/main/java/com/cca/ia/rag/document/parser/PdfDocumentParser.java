@@ -1,20 +1,13 @@
 package com.cca.ia.rag.document.parser;
 
-import com.cca.ia.rag.document.DocumentChunkRepository;
-import com.cca.ia.rag.document.DocumentRepository;
-import com.cca.ia.rag.document.DocumentService;
-import com.cca.ia.rag.document.model.DocumentChunkEntity;
-import com.cca.ia.rag.document.model.DocumentEntity;
+import com.cca.ia.rag.document.model.DocumentChunkConfigDto;
 import com.cca.ia.rag.s3.RemoteFileService;
-import org.apache.commons.io.IOUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,21 +22,11 @@ public class PdfDocumentParser implements DocumentParser {
     @Autowired
     private RemoteFileService remoteFileService;
 
-    @Autowired
-    private DocumentService documentService;
-
-    @Autowired
-    private DocumentRepository documentRepository;
-
-    @Autowired
-    private DocumentChunkRepository documentChunkRepository;
-
     @Override
     @Transactional(readOnly = false)
-    @Async
-    public void parseAndPersist(DocumentEntity documentEntity, String collectionName, String filename) throws Exception {
+    public List<Document> parseAndExtractChunks(Resource resource, DocumentChunkConfigDto config) throws Exception {
 
-        Resource resource = new InputStreamResource(remoteFileService.getObject(collectionName, "storage/" + filename));
+        String filename = resource.getFilename();
         List<String> paragraphs = new ArrayList<>();
 
         try (PDDocument document = Loader.loadPDF(resource.getContentAsByteArray())) {
@@ -87,7 +70,7 @@ public class PdfDocumentParser implements DocumentParser {
 
         List<Document> chunks = new ArrayList<>();
         int actualSize = 0;
-        int maxTokens = 1500;
+        int maxTokens = config.getChunkSize();
         int maxSizeInWords = (int) (maxTokens * 0.75d);
         StringBuilder sb = new StringBuilder();
 
@@ -120,30 +103,7 @@ public class PdfDocumentParser implements DocumentParser {
         List<Document> chunks = tokenTextSplitter.apply(pdfReader.get());
         */
 
-        long order = 1;
-        for (Document chunk : chunks) {
-
-            DocumentChunkEntity documentSplitEntity = new DocumentChunkEntity();
-
-            documentSplitEntity.setDocument(documentEntity);
-            documentSplitEntity.setFilename(chunk.getId());
-            documentSplitEntity.setOrder(order++);
-
-            documentChunkRepository.save(documentSplitEntity);
-            uploadChunk(collectionName, chunk);
-        }
-
-        documentEntity.setStatus(DocumentEntity.DocumentStatus.CHUNK);
-        documentRepository.save(documentEntity);
-    }
-
-    private void uploadChunk(String collectionName, Document document) throws Exception {
-
-        //System.out.println("Metadata");
-        //document.getMetadata().forEach((key, value) -> System.out.println("Key: " + key + ", Value: " + value));
-
-        remoteFileService.putObject(IOUtils.toInputStream(document.getContent()), collectionName, "chunk/" + document.getId());
-
+        return chunks;
     }
 
     private String normalizeText(String text) {

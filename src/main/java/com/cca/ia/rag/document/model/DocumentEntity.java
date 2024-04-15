@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 public class DocumentEntity {
 
     public static enum DocumentStatus {
-        PROCESING(0), CHUNK(1), ENHACED(2), EMBEDDINGS(3);
+        PROCESSING(0), CHUNK(1), ENHANCED(2), EMBEDDINGS(3);
 
         private final int value;
 

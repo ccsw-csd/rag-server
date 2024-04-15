@@ -1,7 +1,6 @@
 package com.cca.ia.rag.document;
 
 import com.cca.ia.rag.document.model.*;
-import com.cca.ia.rag.document.parser.DocumentParserService;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,19 +18,12 @@ public class DocumentController {
     private DocumentService documentService;
 
     @Autowired
-    private DocumentParserService documentParserService;
-
-    @Autowired
     private ModelMapper mapper;
 
-    @PostMapping("/parse")
-    public void parseDocument(@RequestBody DocumentParserDto dto) {
+    @PostMapping("/{documentId}/action")
+    public void documentActions(@PathVariable Long documentId, @RequestBody DocumentActionsDto actions) throws Exception {
 
-        try {
-            documentParserService.parse(dto);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        documentService.executeActions(documentId, actions);
 
     }
 
@@ -43,6 +35,12 @@ public class DocumentController {
         return documents.stream().map(e -> mapper.map(e, DocumentDto.class)).collect(Collectors.toList());
     }
 
+    @PostMapping("/{documentId}/chunks")
+    public void saveDocumentChunks(@PathVariable Long documentId, @RequestBody DocumentChunkSaveDto dto) throws Exception {
+
+        documentService.saveDocumentChunks(documentId, dto);
+    }
+
     @GetMapping("/by-collection/{collectionId}")
     public List<DocumentDto> getDocuments(@PathVariable Long collectionId) {
 
@@ -51,10 +49,10 @@ public class DocumentController {
         return documents.stream().map(e -> mapper.map(e, DocumentDto.class)).collect(Collectors.toList());
     }
 
-    @GetMapping("/{documentId}/chunks")
-    public List<DocumentChunkDto> getDocumentChunks(@PathVariable Long documentId) {
+    @GetMapping("/{documentId}/chunks/{type}")
+    public List<DocumentChunkDto> getDocumentChunks(@PathVariable Long documentId, @PathVariable Integer type) {
 
-        List<DocumentChunkEntity> documents = documentService.getDocumentChunksByDocumentId(documentId);
+        List<DocumentChunkEntity> documents = documentService.getDocumentChunksByDocumentId(documentId, DocumentChunkEntity.DocumentChunkType.fromInt(type));
 
         return documents.stream().map(e -> mapper.map(e, DocumentChunkDto.class)).collect(Collectors.toList());
     }

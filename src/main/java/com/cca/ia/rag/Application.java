@@ -1,15 +1,17 @@
 package com.cca.ia.rag;
 
 import org.springframework.ai.chroma.ChromaApi;
-import org.springframework.ai.embedding.EmbeddingClient;
-import org.springframework.ai.vectorsore.ChromaVectorStore;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.client.ClientHttpRequestFactories;
+import org.springframework.boot.web.client.ClientHttpRequestFactorySettings;
+import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestTemplate;
+
+import java.time.Duration;
 
 @SpringBootApplication
 @EnableScheduling
@@ -33,7 +35,7 @@ public class Application {
     }
 
     @Bean
-    public VectorStore chromaVectorStore(EmbeddingClient embeddingClient, ChromaApi chromaApi) {
-        return new ChromaVectorStore(embeddingClient, chromaApi, "TestCollection");
+    public RestClientCustomizer restClientCustomizer() {
+        return restClientBuilder -> restClientBuilder.requestFactory(ClientHttpRequestFactories.get(ClientHttpRequestFactorySettings.DEFAULTS.withConnectTimeout(Duration.ofSeconds(10)).withReadTimeout(Duration.ofSeconds(60))));
     }
 }

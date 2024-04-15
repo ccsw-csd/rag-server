@@ -10,6 +10,7 @@ public interface RemoteFileService {
 
     void deleteObject(String pathName, String objectName) throws Exception;
 
+    String getContent(String pathName, String objectName) throws Exception;
 }
 
 

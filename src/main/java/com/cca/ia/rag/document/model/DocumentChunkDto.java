@@ -6,6 +6,16 @@ public class DocumentChunkDto {
     private Long order;
     private String filename;
 
+    private DocumentChunkEntity.DocumentChunkType type;
+
+    public DocumentChunkEntity.DocumentChunkType getType() {
+        return type;
+    }
+
+    public void setType(DocumentChunkEntity.DocumentChunkType type) {
+        this.type = type;
+    }
+
     public Long getId() {
         return id;
     }

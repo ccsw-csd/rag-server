@@ -1,5 +1,6 @@
 package com.cca.ia.rag.ingestor;
 
+import com.cca.ia.rag.document.embedding.EmbeddingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
@@ -22,35 +23,23 @@ public class IngestorServiceVectorDB implements IngestorService {
     @Value("classpath:/data/medicaid-wa-faqs.pdf")
     private Resource pdfResource;
 
-    @Autowired
     private VectorStore vectorStore;
-
 
     @Autowired
     private EmbeddingService embeddingService;
 
-
     @Override
     public void load() {
-        PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(
-                this.pdfResource,
-                PdfDocumentReaderConfig.builder()
-                        .withPageExtractedTextFormatter(ExtractedTextFormatter.builder()
-                                .withNumberOfBottomTextLinesToDelete(3)
-                                .withNumberOfTopPagesToSkipBeforeDelete(1)
-                                .build())
-                        .withPagesPerDocument(1)
-                        .build());
+        PagePdfDocumentReader pdfReader = new PagePdfDocumentReader(this.pdfResource,
+                PdfDocumentReaderConfig.builder().withPageExtractedTextFormatter(ExtractedTextFormatter.builder().withNumberOfBottomTextLinesToDelete(3).withNumberOfTopPagesToSkipBeforeDelete(1).build()).withPagesPerDocument(1).build());
 
         var tokenTextSplitter = new TokenTextSplitter(2000, 300, 5, 10000, true);
 
         List<Document> documents = tokenTextSplitter.apply(pdfReader.get());
 
-        embeddingService.add(this.pdfResource.getFilename(), documents);
+        //embeddingService.add(this.pdfResource.getFilename(), documents);
 
         logger.info("Parsing document, splitting, creating embeddings and storing in vector store...  this will take a while.");
-
-
 
         //this.vectorStore.accept(documents);
         logger.info("Done parsing document, splitting, creating embeddings and storing in vector store");
