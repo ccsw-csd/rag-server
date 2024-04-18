@@ -1,4 +1,4 @@
-package com.cca.ia.rag.document.model;
+package com.cca.ia.rag.document.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

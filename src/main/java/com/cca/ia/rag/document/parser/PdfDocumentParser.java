@@ -1,6 +1,6 @@
 package com.cca.ia.rag.document.parser;
 
-import com.cca.ia.rag.document.model.DocumentChunkConfigDto;
+import com.cca.ia.rag.document.dto.DocumentChunkConfigDto;
 import com.cca.ia.rag.s3.RemoteFileService;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -56,7 +56,7 @@ public class PdfDocumentParser implements DocumentParser {
                     paragraphs.add(sb.toString());
                     sb = new StringBuilder();
                 } else {
-                    sb.append(line + " ");
+                    sb.append(line + "\n");
                 }
 
             }

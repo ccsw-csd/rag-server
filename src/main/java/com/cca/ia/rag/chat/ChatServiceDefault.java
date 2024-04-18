@@ -98,7 +98,7 @@ public class ChatServiceDefault implements ChatService {
         ChatResponse chatResponse = chatClient.call(prompt);
         long end = System.currentTimeMillis();
 
-        logger.info("La IA ha respondido.");
+        logger.info("La IA ha respondido: " + chatResponse.getResult().getOutput().getContent());
 
         MessageDto messageDto = new MessageDto();
 

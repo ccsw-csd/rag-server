@@ -1,6 +1,6 @@
 package com.cca.ia.rag.document;
 
-import com.cca.ia.rag.document.model.DocumentEntity;
+import com.cca.ia.rag.document.model.DocumentFileEntity;
 import org.springframework.ai.document.Document;
 
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class DocumentUtils {
 
-    public static List<Document> createChunksFromArrayString(DocumentEntity document, String[] contents) throws Exception {
+    public static List<Document> createChunksFromArrayString(DocumentFileEntity document, String[] contents) throws Exception {
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("filename", document.getFilename());

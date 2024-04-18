@@ -1,12 +1,22 @@
-package com.cca.ia.rag.document.model;
+package com.cca.ia.rag.document.dto;
 
-public class DocumentChunkContentDto {
+import com.cca.ia.rag.document.model.DocumentChunkEntity;
+
+public class DocumentChunkDto {
 
     private Long id;
     private Long order;
     private String filename;
 
-    private String content;
+    private DocumentChunkEntity.DocumentChunkType type;
+
+    public DocumentChunkEntity.DocumentChunkType getType() {
+        return type;
+    }
+
+    public void setType(DocumentChunkEntity.DocumentChunkType type) {
+        this.type = type;
+    }
 
     public Long getId() {
         return id;
@@ -30,13 +40,5 @@ public class DocumentChunkContentDto {
 
     public void setFilename(String filename) {
         this.filename = filename;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
     }
 }

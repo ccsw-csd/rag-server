@@ -1,7 +1,9 @@
 package com.cca.ia.rag.document;
 
-import com.cca.ia.rag.collection.CollectionService;
 import com.cca.ia.rag.collection.model.CollectionEntity;
+import com.cca.ia.rag.document.dto.DocumentActionsDto;
+import com.cca.ia.rag.document.dto.DocumentChunkContentDto;
+import com.cca.ia.rag.document.dto.DocumentChunkSaveDto;
 import com.cca.ia.rag.document.embedding.EmbeddingService;
 import com.cca.ia.rag.document.model.*;
 import com.cca.ia.rag.document.parser.FactoryDocumentParserService;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -33,13 +36,13 @@ public class DocumentServiceDefault implements DocumentService {
     private DocumentChunkRepository documentChunkRepository;
 
     @Autowired
+    private DocumentFileRepository documentFileRepository;
+
+    @Autowired
     private DocumentRepository documentRepository;
 
     @Autowired
     private RemoteFileService remoteFileService;
-
-    @Autowired
-    private CollectionService collectionService;
 
     @Autowired
     private FactoryDocumentParserService documentParserService;
@@ -57,9 +60,9 @@ public class DocumentServiceDefault implements DocumentService {
     @Override
     public void executeActions(Long documentId, DocumentActionsDto actions) {
 
-        DocumentEntity document = documentRepository.findById(documentId).orElse(null);
-        document.setStatus(DocumentEntity.DocumentStatus.PROCESSING);
-        documentRepository.save(document);
+        DocumentFileEntity document = documentFileRepository.findById(documentId).orElse(null);
+        document.setStatus(DocumentFileEntity.DocumentStatus.PROCESSING);
+        documentFileRepository.save(document);
 
         try {
             documentService.executeActionsAsync(document, actions);
@@ -69,10 +72,28 @@ public class DocumentServiceDefault implements DocumentService {
     }
 
     @Override
-    @Async
-    public void executeActionsAsync(DocumentEntity document, DocumentActionsDto actions) throws Exception {
+    public void deleteAllFromSourceDocument(Long documentId) throws Exception {
 
-        CollectionEntity collection = collectionService.findById(document.getCollectionId());
+        DocumentActionsDto actions = new DocumentActionsDto();
+        actions.setDeleteDocument(true);
+        actions.setDeleteChunks(true);
+        actions.setDeleteEmbeddings(true);
+        actions.setDeleteEnhacedChunks(true);
+
+        List<DocumentFileEntity> documentFiles = documentFileRepository.findByDocumentId(documentId);
+
+        for (DocumentFileEntity document : documentFiles) {
+            executeActionsAsync(document, actions);
+        }
+
+        documentRepository.deleteById(documentId);
+    }
+
+    @Override
+    @Async
+    public void executeActionsAsync(DocumentFileEntity document, DocumentActionsDto actions) throws Exception {
+
+        CollectionEntity collection = document.getDocument().getCollection();
         String collectionName = collection.getName();
         List<DocumentChunkEntity> chunks = null;
 
@@ -98,13 +119,20 @@ public class DocumentServiceDefault implements DocumentService {
         }
 
         if (actions.isDeleteDocument()) {
-            LOG.error("Not implemented: isDeleteDocument");
+            List<String> files = deleteChunksDocumentByType(document, DocumentChunkEntity.DocumentChunkType.PERSONAL);
+            deleteFiles(collectionName, files);
+
+            String filename = deleteDocumentFileEntity(document);
+            deleteFiles(collectionName, Arrays.asList(filename));
+
+            return;
         }
 
         // *************** CREATE ACTIONS ***************
 
         if (actions.isCreateDocument()) {
-            document.setStatus(DocumentEntity.DocumentStatus.PROCESSING);
+
+            document.setStatus(DocumentFileEntity.DocumentStatus.PROCESSING);
             LOG.error("Not implemented: isCreateDocument");
         }
 
@@ -115,11 +143,11 @@ public class DocumentServiceDefault implements DocumentService {
             saveChunkDocuments(document, documents, DocumentChunkEntity.DocumentChunkType.ORIGINAL);
             uploadFiles(collectionName, documents);
 
-            document.setStatus(DocumentEntity.DocumentStatus.CHUNK);
+            document.setStatus(DocumentFileEntity.DocumentStatus.CHUNK);
         }
 
         if (actions.isCreateEnhacedChunks()) {
-            document.setStatus(DocumentEntity.DocumentStatus.ENHANCED);
+            document.setStatus(DocumentFileEntity.DocumentStatus.ENHANCED);
             LOG.error("Not implemented: isCreateEnhacedChunks");
         }
 
@@ -134,24 +162,24 @@ public class DocumentServiceDefault implements DocumentService {
             }
             documentChunkRepository.saveAll(chunks);
 
-            document.setStatus(DocumentEntity.DocumentStatus.EMBEDDINGS);
+            document.setStatus(DocumentFileEntity.DocumentStatus.EMBEDDINGS);
         }
 
-        documentRepository.save(document);
+        documentFileRepository.save(document);
     }
 
     @Override
-    public List<DocumentEntity> getDocuments(Long collectionId) {
+    public List<DocumentFileEntity> getDocuments(Long collectionId) {
 
-        return documentRepository.findByCollectionId(collectionId);
+        return documentFileRepository.findByDocumentCollectionIdOrderByDocumentFilenameAsc(collectionId);
     }
 
     @Override
     @Transactional(readOnly = false)
     public void saveDocumentChunks(Long documentId, DocumentChunkSaveDto dto) throws Exception {
 
-        DocumentEntity document = documentRepository.findById(documentId).orElse(null);
-        CollectionEntity collection = collectionService.findById(document.getCollectionId());
+        DocumentFileEntity document = documentFileRepository.findById(documentId).orElse(null);
+        CollectionEntity collection = document.getDocument().getCollection();
 
         List<String> files = deleteChunksDocumentByType(document, DocumentChunkEntity.DocumentChunkType.ORIGINAL);
         deleteFiles(collection.getName(), files);
@@ -164,7 +192,7 @@ public class DocumentServiceDefault implements DocumentService {
         uploadFiles(collection.getName(), chunks);
     }
 
-    private void saveChunkDocuments(DocumentEntity documentEntity, List<Document> documents, DocumentChunkEntity.DocumentChunkType type) throws Exception {
+    private void saveChunkDocuments(DocumentFileEntity documentEntity, List<Document> documents, DocumentChunkEntity.DocumentChunkType type) throws Exception {
 
         List<DocumentChunkEntity> chunks = new ArrayList<>();
 
@@ -191,7 +219,13 @@ public class DocumentServiceDefault implements DocumentService {
 
     }
 
-    private List<String> deleteChunksDocumentByType(DocumentEntity document, DocumentChunkEntity.DocumentChunkType type) throws Exception {
+    private String deleteDocumentFileEntity(DocumentFileEntity document) throws Exception {
+        String filename = document.getFilename();
+        documentFileRepository.delete(document);
+        return filename;
+    }
+
+    private List<String> deleteChunksDocumentByType(DocumentFileEntity document, DocumentChunkEntity.DocumentChunkType type) throws Exception {
         List<String> files = new ArrayList<>();
         List<DocumentChunkEntity> chunks = documentChunkRepository.findByDocumentIdAndTypeOrderByOrderDesc(document.getId(), type);
 
@@ -230,7 +264,9 @@ public class DocumentServiceDefault implements DocumentService {
             return null;
         }
 
-        CollectionEntity collection = collectionService.findById(chunk.getDocument().getCollectionId());
+        DocumentFileEntity document = documentFileRepository.findById(documentId).orElse(null);
+        CollectionEntity collection = document.getDocument().getCollection();
+
         InputStream stream = remoteFileService.getObject(collection.getName(), "chunk/" + chunk.getFilename());
 
         String content = IOUtils.toString(stream, StandardCharsets.UTF_8);
@@ -242,8 +278,8 @@ public class DocumentServiceDefault implements DocumentService {
     }
 
     @Override
-    public List<DocumentEntity> getDocumentsById(List<Long> documentsId) {
-        return documentRepository.findByIdIn(documentsId);
+    public List<DocumentFileEntity> getDocumentsById(List<Long> documentsId) {
+        return documentFileRepository.findByIdIn(documentsId);
     }
 
 }

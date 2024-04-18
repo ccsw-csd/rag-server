@@ -2,7 +2,7 @@ package com.cca.ia.rag.document.embedding;
 
 import com.cca.ia.rag.collection.model.CollectionEntity;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
-import com.cca.ia.rag.document.model.DocumentEntity;
+import com.cca.ia.rag.document.model.DocumentFileEntity;
 import com.cca.ia.rag.s3.RemoteFileService;
 import org.springframework.ai.chroma.ChromaApi;
 import org.springframework.ai.document.Document;
@@ -47,7 +47,7 @@ public class EmbeddingServiceDefault implements EmbeddingService {
     }
 
     @Override
-    public void createEmbeddings(CollectionEntity collection, DocumentEntity document, List<DocumentChunkEntity> chunks) throws Exception {
+    public void createEmbeddings(CollectionEntity collection, DocumentFileEntity document, List<DocumentChunkEntity> chunks) throws Exception {
 
         List<Document> documents = new ArrayList<>();
         Map<String, Object> metadata = new HashMap<>();

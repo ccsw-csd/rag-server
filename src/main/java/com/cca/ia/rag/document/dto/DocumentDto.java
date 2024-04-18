@@ -1,13 +1,13 @@
-package com.cca.ia.rag.document.model;
+package com.cca.ia.rag.document.dto;
+
+import com.cca.ia.rag.document.model.DocumentEntity;
 
 public class DocumentDto {
 
     private Long id;
     private String collectionId;
     private String filename;
-    private String source;
-
-    private DocumentEntity.DocumentStatus status;
+    private DocumentEntity.DocumentType type;
 
     public Long getId() {
         return id;
@@ -33,19 +33,11 @@ public class DocumentDto {
         this.filename = filename;
     }
 
-    public String getSource() {
-        return source;
+    public DocumentEntity.DocumentType getType() {
+        return type;
     }
 
-    public void setSource(String source) {
-        this.source = source;
-    }
-
-    public DocumentEntity.DocumentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(DocumentEntity.DocumentStatus status) {
-        this.status = status;
+    public void setType(DocumentEntity.DocumentType type) {
+        this.type = type;
     }
 }

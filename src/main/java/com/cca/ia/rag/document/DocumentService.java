@@ -1,12 +1,16 @@
 package com.cca.ia.rag.document;
 
-import com.cca.ia.rag.document.model.*;
+import com.cca.ia.rag.document.dto.DocumentActionsDto;
+import com.cca.ia.rag.document.dto.DocumentChunkContentDto;
+import com.cca.ia.rag.document.dto.DocumentChunkSaveDto;
+import com.cca.ia.rag.document.model.DocumentChunkEntity;
+import com.cca.ia.rag.document.model.DocumentFileEntity;
 
 import java.util.List;
 
 public interface DocumentService {
 
-    List<DocumentEntity> getDocuments(Long collectionId);
+    List<DocumentFileEntity> getDocuments(Long collectionId);
 
     List<DocumentChunkEntity> getDocumentChunksByDocumentId(Long documentId, DocumentChunkEntity.DocumentChunkType type);
 
@@ -14,9 +18,11 @@ public interface DocumentService {
 
     DocumentChunkContentDto getChunkContentByDocumentAndChunkId(Long documentId, Long chunkId) throws Exception;
 
-    List<DocumentEntity> getDocumentsById(List<Long> documentsId);
+    List<DocumentFileEntity> getDocumentsById(List<Long> documentsId);
 
     void executeActions(Long documentId, DocumentActionsDto actions);
 
-    void executeActionsAsync(DocumentEntity document, DocumentActionsDto actions) throws Exception;
+    void executeActionsAsync(DocumentFileEntity document, DocumentActionsDto actions) throws Exception;
+
+    void deleteAllFromSourceDocument(Long documentId) throws Exception;
 }

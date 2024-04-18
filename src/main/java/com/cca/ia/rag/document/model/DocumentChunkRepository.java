@@ -1,6 +1,5 @@
-package com.cca.ia.rag.document;
+package com.cca.ia.rag.document.model;
 
-import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;

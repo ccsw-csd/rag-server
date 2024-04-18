@@ -1,17 +1,18 @@
 package com.cca.ia.rag.document.model;
 
+import com.cca.ia.rag.collection.model.CollectionEntity;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "document")
 public class DocumentEntity {
 
-    public static enum DocumentStatus {
-        PROCESSING(0), CHUNK(1), ENHANCED(2), EMBEDDINGS(3);
+    public static enum DocumentType {
+        DOCUMENT(0), CODE(1);
 
         private final int value;
 
-        DocumentStatus(int value) {
+        DocumentType(int value) {
             this.value = value;
         }
 
@@ -26,21 +27,16 @@ public class DocumentEntity {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "collection_id", nullable = false)
-    private Long collectionId;
+    @ManyToOne
+    @JoinColumn(name = "collection_id", nullable = false)
+    private CollectionEntity collection;
 
     @Column(name = "filename", nullable = false)
     private String filename;
 
-    @Column(name = "source", nullable = false)
-    private String source;
-
-    @Column(name = "status", nullable = false)
+    @Column(name = "type", nullable = false)
     @Enumerated(EnumType.ORDINAL)
-    private DocumentStatus status;
-
-    @Column(name = "path", nullable = true)
-    private String path;
+    private DocumentType type;
 
     public Long getId() {
         return id;
@@ -50,12 +46,12 @@ public class DocumentEntity {
         this.id = id;
     }
 
-    public Long getCollectionId() {
-        return collectionId;
+    public CollectionEntity getCollection() {
+        return collection;
     }
 
-    public void setCollectionId(Long collectionId) {
-        this.collectionId = collectionId;
+    public void setCollection(CollectionEntity collection) {
+        this.collection = collection;
     }
 
     public String getFilename() {
@@ -65,28 +61,13 @@ public class DocumentEntity {
     public void setFilename(String filename) {
         this.filename = filename;
     }
-
-    public String getSource() {
-        return source;
+    
+    public DocumentType getType() {
+        return type;
     }
 
-    public void setSource(String source) {
-        this.source = source;
+    public void setType(DocumentType type) {
+        this.type = type;
     }
 
-    public DocumentStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(DocumentStatus status) {
-        this.status = status;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
-    }
 }

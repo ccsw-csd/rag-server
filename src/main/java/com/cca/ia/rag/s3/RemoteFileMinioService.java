@@ -57,7 +57,11 @@ public class RemoteFileMinioService implements RemoteFileService {
     public void deleteObject(String pathName, String objectName) throws Exception {
         MinioClient minioClient = getMinioClient();
 
-        minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(pathName + "/" + objectName).build());
+        try {
+            minioClient.removeObject(RemoveObjectArgs.builder().bucket(bucketName).object(pathName + "/" + objectName).build());
+        } catch (Exception e) {
+
+        }
     }
 
     @Override
@@ -68,7 +72,7 @@ public class RemoteFileMinioService implements RemoteFileService {
         if (is != null) {
             return new String(is.readAllBytes());
         }
-        
+
         return null;
     }
 

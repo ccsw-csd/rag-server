@@ -1,4 +1,4 @@
-package com.cca.ia.rag.document.model;
+package com.cca.ia.rag.document.dto;
 
 public class DocumentParserDto {
 

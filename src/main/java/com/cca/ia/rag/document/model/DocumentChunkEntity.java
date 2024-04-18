@@ -38,8 +38,8 @@ public class DocumentChunkEntity {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "document_id", nullable = false)
-    private DocumentEntity document;
+    @JoinColumn(name = "document_file_id", nullable = false)
+    private DocumentFileEntity document;
 
     @Column(name = "`order`", nullable = false)
     private Long order;
@@ -52,7 +52,7 @@ public class DocumentChunkEntity {
     private DocumentChunkType type;
 
     @Column(name = "embedding", nullable = false)
-    private Boolean embedding;
+    private Boolean embedding = false;
 
     public Long getId() {
         return id;
@@ -62,11 +62,11 @@ public class DocumentChunkEntity {
         this.id = id;
     }
 
-    public DocumentEntity getDocument() {
+    public DocumentFileEntity getDocument() {
         return document;
     }
 
-    public void setDocument(DocumentEntity document) {
+    public void setDocument(DocumentFileEntity document) {
         this.document = document;
     }
 

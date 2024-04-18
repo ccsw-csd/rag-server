@@ -1,6 +1,6 @@
 package com.cca.ia.rag.document.parser;
 
-import com.cca.ia.rag.document.model.DocumentChunkConfigDto;
+import com.cca.ia.rag.document.dto.DocumentChunkConfigDto;
 import org.springframework.ai.document.Document;
 import org.springframework.core.io.Resource;
 
