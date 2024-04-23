@@ -44,15 +44,15 @@ public class DocumentChunkEntity {
     @Column(name = "`order`", nullable = false)
     private Long order;
 
-    @Column(name = "filename", nullable = false)
-    private String filename;
-
     @Column(name = "type", nullable = false)
     @Enumerated(EnumType.ORDINAL)
     private DocumentChunkType type;
 
-    @Column(name = "embedding", nullable = false)
-    private Boolean embedding = false;
+    @Column(name = "content", nullable = false)
+    private String content;
+
+    @Column(name = "embedding_id", nullable = false)
+    private String embedding;
 
     public Long getId() {
         return id;
@@ -78,14 +78,6 @@ public class DocumentChunkEntity {
         this.order = order;
     }
 
-    public String getFilename() {
-        return filename;
-    }
-
-    public void setFilename(String filename) {
-        this.filename = filename;
-    }
-
     public DocumentChunkType getType() {
         return type;
     }
@@ -94,11 +86,19 @@ public class DocumentChunkEntity {
         this.type = type;
     }
 
-    public Boolean getEmbedding() {
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public String getEmbedding() {
         return embedding;
     }
 
-    public void setEmbedding(Boolean embedding) {
+    public void setEmbedding(String embedding) {
         this.embedding = embedding;
     }
 }

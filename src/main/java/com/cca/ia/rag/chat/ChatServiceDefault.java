@@ -1,9 +1,14 @@
 package com.cca.ia.rag.chat;
 
+import com.cca.ia.rag.chat.model.ChatEntity;
+import com.cca.ia.rag.chat.model.ConversationEntity;
+import com.cca.ia.rag.chat.model.EmbeddingMessage;
 import com.cca.ia.rag.chat.model.MessageDto;
 import com.cca.ia.rag.collection.CollectionRepository;
 import com.cca.ia.rag.collection.model.CollectionEntity;
 import com.cca.ia.rag.document.embedding.EmbeddingService;
+import com.cca.ia.rag.document.model.DocumentChunkEntity;
+import com.cca.ia.rag.document.model.DocumentChunkRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.ChatClient;
@@ -20,6 +25,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,7 +44,16 @@ public class ChatServiceDefault implements ChatService {
     private final ChatClient chatClient;
 
     @Autowired
+    private ChatRepository chatRepository;
+
+    @Autowired
+    private ConversationRepository conversationRepository;
+
+    @Autowired
     private EmbeddingService embeddingService;
+
+    @Autowired
+    private DocumentChunkRepository documentChunkRepository;
 
     @Autowired
     private CollectionRepository collectionRepository;
@@ -75,9 +90,19 @@ public class ChatServiceDefault implements ChatService {
     }
 
     @Override
-    public MessageDto sendQuestion(Long collectionId, String question) {
+    public ConversationEntity sendQuestion(Long collectionId, String question) {
         long start = System.currentTimeMillis();
         CollectionEntity collection = collectionRepository.findById(collectionId).orElseThrow();
+
+        ChatEntity chat = chatRepository.findById(1L).orElseThrow();
+
+        ConversationEntity conversation = new ConversationEntity();
+        conversation.setChat(chat);
+        conversation.setAuthor("Pablo Jiménez Martínez"); //TODO cambiar
+        conversation.setUser(true);
+        conversation.setContent(question);
+        conversation.setDate(LocalDateTime.now());
+        conversationRepository.save(conversation);
 
         logger.info("Recibimos pregunta: " + question);
 
@@ -102,15 +127,55 @@ public class ChatServiceDefault implements ChatService {
 
         MessageDto messageDto = new MessageDto();
 
+        List<String> embeddings = similarDocuments.stream().map(entry -> entry.getId()).collect(Collectors.toList());
+
         String response = chatResponse.getResult().getOutput().getContent();
 
-        messageDto.setDate(LocalDateTime.now());
-        messageDto.setAuthor("AI Bot");
-        messageDto.setUser(false);
-        messageDto.setTokens(chatResponse.getMetadata().getUsage().getTotalTokens());
-        messageDto.setContent(response);
-        messageDto.setSpentTime(end - start);
+        ConversationEntity conversationResponse = new ConversationEntity();
+        conversationResponse.setChat(chat);
+        conversationResponse.setAuthor("Assistant"); //TODO cambiar
+        conversationResponse.setUser(false);
+        conversationResponse.setContent(response);
+        conversationResponse.setTokens(chatResponse.getMetadata().getUsage().getTotalTokens());
+        conversationResponse.setSpentTime(end - start);
+        conversationResponse.setDate(LocalDateTime.now());
+        conversationResponse.setEmbeddings(embeddings);
+        conversationRepository.save(conversationResponse);
 
-        return messageDto;
+        return conversationResponse;
+    }
+
+    @Override
+    public List<ConversationEntity> findByChatId(Long chatId) {
+
+        return conversationRepository.findByChatIdOrderByDateAsc(chatId);
+
+    }
+
+    @Override
+    public List<EmbeddingMessage> getEmbeddingsFromMessageId(Long messageId) {
+
+        ConversationEntity message = conversationRepository.findById(messageId).orElseThrow();
+        CollectionEntity collection = message.getChat().getCollection();
+
+        List<DocumentChunkEntity> chunks = documentChunkRepository.findByDocumentDocumentCollectionIdAndEmbeddingIn(collection.getId(), message.getEmbeddings());
+
+        List<EmbeddingMessage> embeddings = new ArrayList<>();
+
+        for (DocumentChunkEntity chunk : chunks) {
+
+            EmbeddingMessage embeddingMessage = new EmbeddingMessage();
+
+            embeddingMessage.setId(chunk.getId());
+            embeddingMessage.setEmbeddingId(chunk.getEmbedding());
+            embeddingMessage.setContent(chunk.getContent());
+            embeddingMessage.setType(chunk.getType());
+            embeddingMessage.setOrder(chunk.getOrder());
+            embeddingMessage.setDocument(chunk.getDocument().getFilename());
+
+            embeddings.add(embeddingMessage);
+        }
+
+        return embeddings;
     }
 }

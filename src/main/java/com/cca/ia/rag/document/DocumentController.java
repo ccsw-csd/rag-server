@@ -5,8 +5,6 @@ import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import com.cca.ia.rag.document.model.DocumentFileEntity;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,10 +31,10 @@ public class DocumentController {
 
     }
 
-    @PostMapping("/{documentId}/action")
-    public void documentActions(@PathVariable Long documentId, @RequestBody DocumentActionsDto actions) throws Exception {
+    @PostMapping("/generate-embeddings/{parentDocumentId}")
+    public void generateEmbeddings(@PathVariable Long parentDocumentId, @RequestBody GenerateEmbeddingsDto data) throws Exception {
 
-        documentService.executeActions(documentId, actions);
+        documentService.generateEmbeddings(parentDocumentId, data);
 
     }
 
@@ -80,8 +78,13 @@ public class DocumentController {
         }
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleException(Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred in the controller: " + e.getMessage());
+    @RequestMapping(path = "/upload-in-collection/{collectionId}", method = RequestMethod.POST)
+    public void uploadDocuments(@PathVariable Long collectionId, @ModelAttribute DocumentUploadFormDataDto data) {
+
+        try {
+            documentService.uploadDocuments(collectionId, data);
+        } catch (Exception e) {
+        }
     }
+
 }

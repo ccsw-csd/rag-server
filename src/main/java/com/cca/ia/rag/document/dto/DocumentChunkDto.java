@@ -6,7 +6,8 @@ public class DocumentChunkDto {
 
     private Long id;
     private Long order;
-    private String filename;
+
+    private String content;
 
     private DocumentChunkEntity.DocumentChunkType type;
 
@@ -34,11 +35,11 @@ public class DocumentChunkDto {
         this.order = order;
     }
 
-    public String getFilename() {
-        return filename;
+    public String getContent() {
+        return content;
     }
 
-    public void setFilename(String filename) {
-        this.filename = filename;
+    public void setContent(String content) {
+        this.content = content;
     }
 }

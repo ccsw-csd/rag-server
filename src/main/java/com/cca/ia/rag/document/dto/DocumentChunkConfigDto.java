@@ -5,13 +5,23 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class DocumentChunkConfigDto {
 
-    private int chunkSize = 1500;
+    private int chunkSizeDocumentation = 1500;
 
-    public int getChunkSize() {
-        return chunkSize;
+    private int chunkSizeCode = 4000;
+
+    public int getChunkSizeDocumentation() {
+        return chunkSizeDocumentation;
     }
 
-    public void setChunkSize(int chunkSize) {
-        this.chunkSize = chunkSize;
+    public void setChunkSizeDocumentation(int chunkSizeDocumentation) {
+        this.chunkSizeDocumentation = chunkSizeDocumentation;
+    }
+
+    public int getChunkSizeCode() {
+        return chunkSizeCode;
+    }
+
+    public void setChunkSizeCode(int chunkSizeCode) {
+        this.chunkSizeCode = chunkSizeCode;
     }
 }

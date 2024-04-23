@@ -11,7 +11,7 @@ public interface EmbeddingService {
 
     void deleteEmbeddings(CollectionEntity collection, List<DocumentChunkEntity> chunks);
 
-    void createEmbeddings(CollectionEntity collection, DocumentFileEntity document, List<DocumentChunkEntity> chunks) throws Exception;
+    List<DocumentChunkEntity> createEmbeddings(CollectionEntity collection, DocumentFileEntity document, List<DocumentChunkEntity> chunks);
 
     List<Document> findSimilarity(String collectionName, String question);
 }

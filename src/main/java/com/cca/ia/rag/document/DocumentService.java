@@ -1,8 +1,9 @@
 package com.cca.ia.rag.document;
 
-import com.cca.ia.rag.document.dto.DocumentActionsDto;
 import com.cca.ia.rag.document.dto.DocumentChunkContentDto;
 import com.cca.ia.rag.document.dto.DocumentChunkSaveDto;
+import com.cca.ia.rag.document.dto.DocumentUploadFormDataDto;
+import com.cca.ia.rag.document.dto.GenerateEmbeddingsDto;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import com.cca.ia.rag.document.model.DocumentFileEntity;
 
@@ -20,9 +21,11 @@ public interface DocumentService {
 
     List<DocumentFileEntity> getDocumentsById(List<Long> documentsId);
 
-    void executeActions(Long documentId, DocumentActionsDto actions);
+    void generateEmbeddings(Long parentDocumentId, GenerateEmbeddingsDto data);
 
-    void executeActionsAsync(DocumentFileEntity document, DocumentActionsDto actions) throws Exception;
+    void generateEmbeddings(Long parentDocumentId, List<DocumentFileEntity> documentFiles);
 
     void deleteAllFromSourceDocument(Long documentId) throws Exception;
+
+    void uploadDocuments(Long collectionId, DocumentUploadFormDataDto data) throws Exception;
 }

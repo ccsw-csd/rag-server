@@ -12,4 +12,6 @@ public interface DocumentFileRepository extends CrudRepository<DocumentFileEntit
     List<DocumentFileEntity> findByIdIn(Collection<Long> ids);
 
     List<DocumentFileEntity> findByDocumentId(Long documentId);
+
+    List<DocumentFileEntity> findByDocumentIdAndPathStartsWith(Long id, String path);
 }

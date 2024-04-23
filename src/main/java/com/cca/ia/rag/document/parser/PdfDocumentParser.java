@@ -1,35 +1,29 @@
 package com.cca.ia.rag.document.parser;
 
-import com.cca.ia.rag.document.dto.DocumentChunkConfigDto;
-import com.cca.ia.rag.s3.RemoteFileService;
+import org.apache.commons.io.IOUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.ai.document.Document;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@Service
+@Service("pdfDocumentParser")
 public class PdfDocumentParser implements DocumentParser {
-
-    @Autowired
-    private RemoteFileService remoteFileService;
 
     @Override
     @Transactional(readOnly = false)
-    public List<Document> parseAndExtractChunks(Resource resource, DocumentChunkConfigDto config) throws Exception {
+    public List<Document> parseAndExtractChunks(String filename, InputStream stream, ParserConfigDto config) throws Exception {
 
-        String filename = resource.getFilename();
         List<String> paragraphs = new ArrayList<>();
 
-        try (PDDocument document = Loader.loadPDF(resource.getContentAsByteArray())) {
+        try (PDDocument document = Loader.loadPDF(IOUtils.toByteArray(stream))) {
 
             PDFTextStripper tStripper = new PDFTextStripper();
             int page = 1;
@@ -70,7 +64,7 @@ public class PdfDocumentParser implements DocumentParser {
 
         List<Document> chunks = new ArrayList<>();
         int actualSize = 0;
-        int maxTokens = config.getChunkSize();
+        int maxTokens = config.getMaxTokens();
         int maxSizeInWords = (int) (maxTokens * 0.75d);
         StringBuilder sb = new StringBuilder();
 
