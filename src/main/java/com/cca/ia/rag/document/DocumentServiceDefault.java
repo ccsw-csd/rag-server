@@ -110,9 +110,16 @@ public class DocumentServiceDefault implements DocumentService {
 
     }
 
-    private void createDocumentChunkFiles(DocumentFileEntity documentFile, String filename, InputStream stream, DocumentChunkConfigDto config) throws Exception {
+    private void createDocumentChunkFiles(DocumentFileEntity documentFile, InputStream stream, DocumentChunkConfigDto config) throws Exception {
 
-        List<Document> documents = documentParserService.parseAndExtractChunks(filename, stream, config);
+        List<Document> documents = documentParserService.parseAndExtractChunks(documentFile.getFilename(), stream, config);
+
+        persistDocumentChunkFiles(documentFile, documents, DocumentChunkEntity.DocumentChunkModifyType.ORIGINAL);
+    }
+
+    private void persistDocumentChunkFiles(DocumentFileEntity documentFile, List<Document> documents, DocumentChunkEntity.DocumentChunkModifyType modifyType) {
+
+        DocumentChunkEntity.DocumentChunkType chunkType = documentParserService.getChunkType(documentFile.getFilename());
 
         long order = 1;
 
@@ -122,7 +129,8 @@ public class DocumentServiceDefault implements DocumentService {
             documentChunkEntity.setDocument(documentFile);
             documentChunkEntity.setContent(document.getContent());
             documentChunkEntity.setOrder(order++);
-            documentChunkEntity.setType(DocumentChunkEntity.DocumentChunkType.ORIGINAL);
+            documentChunkEntity.setModifyType(modifyType);
+            documentChunkEntity.setType(chunkType);
 
             documentChunkRepository.save(documentChunkEntity);
         }
@@ -140,7 +148,7 @@ public class DocumentServiceDefault implements DocumentService {
             documentFile.setStatus(DocumentFileEntity.DocumentStatus.PROCESSING);
             documentFileRepository.save(documentFile);
 
-            createDocumentChunkFiles(documentFile, filename, file.getInputStream(), config);
+            createDocumentChunkFiles(documentFile, file.getInputStream(), config);
 
             documentFile.setStatus(DocumentFileEntity.DocumentStatus.CHUNK);
             documentFileRepository.save(documentFile);
@@ -185,7 +193,7 @@ public class DocumentServiceDefault implements DocumentService {
                         documentFile.setPath(filename + "/" + zipEntryName.replace("/" + zipLastname, ""));
                         documentFileRepository.save(documentFile);
 
-                        createDocumentChunkFiles(documentFile, zipLastname, extractedStream, config);
+                        createDocumentChunkFiles(documentFile, extractedStream, config);
 
                         documentFile.setStatus(DocumentFileEntity.DocumentStatus.CHUNK);
                         documentFileRepository.save(documentFile);
@@ -319,22 +327,28 @@ public class DocumentServiceDefault implements DocumentService {
     @Transactional(readOnly = false)
     public void saveDocumentChunks(Long documentId, DocumentChunkSaveDto dto) throws Exception {
 
-        //TODO rehacer
-        /*
-        DocumentFileEntity document = documentFileRepository.findById(documentId).orElse(null);
-        CollectionEntity collection = document.getDocument().getCollection();
+        DocumentFileEntity documentFile = documentFileRepository.findById(documentId).orElse(null);
+        CollectionEntity collection = documentFile.getDocument().getCollection();
 
-        List<String> files = deleteChunksDocumentByType(document, DocumentChunkEntity.DocumentChunkType.ORIGINAL);
-        deleteChunkFiles(collection.getName(), files);
+        List<DocumentChunkEntity> documentChunks = new ArrayList<>();
 
-        files = deleteChunksDocumentByType(document, DocumentChunkEntity.DocumentChunkType.ORIGINAL_MODIFIED);
-        deleteChunkFiles(collection.getName(), files);
+        documentChunks.addAll(documentChunkRepository.findByDocumentIdAndModifyTypeOrderByOrderDesc(documentId, DocumentChunkEntity.DocumentChunkModifyType.ORIGINAL));
+        documentChunks.addAll(documentChunkRepository.findByDocumentIdAndModifyTypeOrderByOrderDesc(documentId, DocumentChunkEntity.DocumentChunkModifyType.ORIGINAL_MODIFIED));
 
-        List<Document> chunks = DocumentUtils.createChunksFromArrayString(document, dto.getContents());
-        saveChunkDocuments(document, chunks, DocumentChunkEntity.DocumentChunkType.ORIGINAL_MODIFIED);
-        uploadFiles(collection.getName(), chunks);
+        try {
+            embeddingService.deleteEmbeddings(collection, documentChunks);
+            for (DocumentChunkEntity documentChunk : documentChunks) {
+                documentChunk.setEmbedding(null);
+            }
+            documentChunkRepository.deleteAll(documentChunks);
+        } catch (Exception e) {
+            LOG.error("Error remove embeddings", e);
+        }
 
-         */
+        List<Document> documents = DocumentUtils.createChunksFromArrayString(documentFile, dto.getContents());
+
+        persistDocumentChunkFiles(documentFile, documents, DocumentChunkEntity.DocumentChunkModifyType.ORIGINAL_MODIFIED);
+
     }
 
     private String deleteDocumentFileEntity(DocumentFileEntity document) throws Exception {
@@ -343,7 +357,7 @@ public class DocumentServiceDefault implements DocumentService {
         return filename;
     }
 
-    private List<String> deleteChunksDocumentByType(DocumentFileEntity document, DocumentChunkEntity.DocumentChunkType type) throws Exception {
+    private List<String> deleteChunksDocumentByType(DocumentFileEntity document, DocumentChunkEntity.DocumentChunkModifyType type) throws Exception {
         //TODO rehacer
         List<String> files = new ArrayList<>();
         /*
@@ -362,12 +376,12 @@ public class DocumentServiceDefault implements DocumentService {
     }
 
     @Override
-    public List<DocumentChunkEntity> getDocumentChunksByDocumentId(Long documentId, DocumentChunkEntity.DocumentChunkType type) {
+    public List<DocumentChunkEntity> getDocumentChunksByDocumentId(Long documentId, DocumentChunkEntity.DocumentChunkModifyType type) {
 
-        List<DocumentChunkEntity> documents = documentChunkRepository.findByDocumentIdAndTypeOrderByOrderDesc(documentId, type);
+        List<DocumentChunkEntity> documents = documentChunkRepository.findByDocumentIdAndModifyTypeOrderByOrderDesc(documentId, type);
 
-        if (type == DocumentChunkEntity.DocumentChunkType.ORIGINAL && (documents == null || documents.isEmpty())) {
-            documents = documentChunkRepository.findByDocumentIdAndTypeOrderByOrderDesc(documentId, DocumentChunkEntity.DocumentChunkType.ORIGINAL_MODIFIED);
+        if (type == DocumentChunkEntity.DocumentChunkModifyType.ORIGINAL && (documents == null || documents.isEmpty())) {
+            documents = documentChunkRepository.findByDocumentIdAndModifyTypeOrderByOrderDesc(documentId, DocumentChunkEntity.DocumentChunkModifyType.ORIGINAL_MODIFIED);
         }
 
         return documents;

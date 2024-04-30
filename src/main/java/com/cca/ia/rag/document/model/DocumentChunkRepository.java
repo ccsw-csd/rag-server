@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface DocumentChunkRepository extends CrudRepository<DocumentChunkEntity, Long> {
 
-    List<DocumentChunkEntity> findByDocumentIdAndTypeOrderByOrderDesc(Long documentId, DocumentChunkEntity.DocumentChunkType type);
+    List<DocumentChunkEntity> findByDocumentIdAndModifyTypeOrderByOrderDesc(Long documentId, DocumentChunkEntity.DocumentChunkModifyType type);
 
     List<DocumentChunkEntity> findByDocumentId(Long id);
 

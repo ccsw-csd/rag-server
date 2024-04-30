@@ -13,5 +13,5 @@ public interface EmbeddingService {
 
     List<DocumentChunkEntity> createEmbeddings(CollectionEntity collection, DocumentFileEntity document, List<DocumentChunkEntity> chunks);
 
-    List<Document> findSimilarity(String collectionName, String question);
+    List<Document> findSimilarity(String collectionName, String question, int codeQuestion, long maxTokens);
 }

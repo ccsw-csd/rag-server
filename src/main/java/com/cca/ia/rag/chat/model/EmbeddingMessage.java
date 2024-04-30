@@ -1,5 +1,6 @@
 package com.cca.ia.rag.chat.model;
 
+import com.cca.ia.rag.document.DocumentUtils;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
 
 public class EmbeddingMessage {
@@ -10,7 +11,7 @@ public class EmbeddingMessage {
 
     private String content;
 
-    private DocumentChunkEntity.DocumentChunkType type;
+    private DocumentChunkEntity.DocumentChunkModifyType type;
 
     private Long order;
 
@@ -18,7 +19,7 @@ public class EmbeddingMessage {
 
     public Long getTokens() {
 
-        return (long) (content.split(" ").length / 0.75d);
+        return DocumentUtils.countTokens(content);
 
     }
 
@@ -46,11 +47,11 @@ public class EmbeddingMessage {
         this.content = content;
     }
 
-    public DocumentChunkEntity.DocumentChunkType getType() {
+    public DocumentChunkEntity.DocumentChunkModifyType getType() {
         return type;
     }
 
-    public void setType(DocumentChunkEntity.DocumentChunkType type) {
+    public void setType(DocumentChunkEntity.DocumentChunkModifyType type) {
         this.type = type;
     }
 

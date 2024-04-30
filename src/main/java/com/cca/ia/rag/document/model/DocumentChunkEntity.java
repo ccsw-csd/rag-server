@@ -7,7 +7,7 @@ import jakarta.persistence.*;
 public class DocumentChunkEntity {
 
     public static enum DocumentChunkType {
-        ORIGINAL(0), ORIGINAL_MODIFIED(1), ENHANCED(2), PERSONAL(3);
+        DOCUMENT(0), CODE(1);
 
         private final int value;
 
@@ -17,6 +17,28 @@ public class DocumentChunkEntity {
 
         public static DocumentChunkType fromInt(int value) {
             if (value == 0)
+                return DOCUMENT;
+            if (value == 1)
+                return CODE;
+            throw new RuntimeException("Type not exists");
+        }
+
+        public int getValue() {
+            return value;
+        }
+    }
+
+    public static enum DocumentChunkModifyType {
+        ORIGINAL(0), ORIGINAL_MODIFIED(1), ENHANCED(2), PERSONAL(3);
+
+        private final int value;
+
+        DocumentChunkModifyType(int value) {
+            this.value = value;
+        }
+
+        public static DocumentChunkModifyType fromInt(int value) {
+            if (value == 0)
                 return ORIGINAL;
             if (value == 1)
                 return ORIGINAL_MODIFIED;
@@ -24,7 +46,7 @@ public class DocumentChunkEntity {
                 return ENHANCED;
             if (value == 3)
                 return PERSONAL;
-            throw new RuntimeException("Type not exists");
+            throw new RuntimeException("ModifyType not exists");
         }
 
         public int getValue() {
@@ -43,6 +65,10 @@ public class DocumentChunkEntity {
 
     @Column(name = "`order`", nullable = false)
     private Long order;
+
+    @Column(name = "modify_type", nullable = false)
+    @Enumerated(EnumType.ORDINAL)
+    private DocumentChunkModifyType modifyType;
 
     @Column(name = "type", nullable = false)
     @Enumerated(EnumType.ORDINAL)
@@ -78,12 +104,12 @@ public class DocumentChunkEntity {
         this.order = order;
     }
 
-    public DocumentChunkType getType() {
-        return type;
+    public DocumentChunkModifyType getModifyType() {
+        return modifyType;
     }
 
-    public void setType(DocumentChunkType type) {
-        this.type = type;
+    public void setModifyType(DocumentChunkModifyType modifyType) {
+        this.modifyType = modifyType;
     }
 
     public String getContent() {
@@ -100,5 +126,13 @@ public class DocumentChunkEntity {
 
     public void setEmbedding(String embedding) {
         this.embedding = embedding;
+    }
+
+    public DocumentChunkType getType() {
+        return type;
+    }
+
+    public void setType(DocumentChunkType type) {
+        this.type = type;
     }
 }

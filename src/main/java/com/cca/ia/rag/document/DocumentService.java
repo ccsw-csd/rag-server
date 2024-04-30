@@ -13,7 +13,7 @@ public interface DocumentService {
 
     List<DocumentFileEntity> getDocuments(Long collectionId);
 
-    List<DocumentChunkEntity> getDocumentChunksByDocumentId(Long documentId, DocumentChunkEntity.DocumentChunkType type);
+    List<DocumentChunkEntity> getDocumentChunksByDocumentId(Long documentId, DocumentChunkEntity.DocumentChunkModifyType type);
 
     void saveDocumentChunks(Long documentId, DocumentChunkSaveDto dto) throws Exception;
 

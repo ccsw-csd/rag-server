@@ -20,6 +20,9 @@ public class TextDocumentParser implements DocumentParser {
     public List<Document> parseAndExtractChunks(String filename, InputStream stream, ParserConfigDto config) throws Exception {
 
         String content = IOUtils.toString(stream, StandardCharsets.UTF_8);
+
+        content = content.replaceAll("(?:/\\*(?:[^*]|(?:\\*+[^*/]))*\\*+/)|(?://.*)", "");
+
         String lines[] = content.split("\\r?\\n");
 
         Map<String, Object> metadata = new HashMap<>();

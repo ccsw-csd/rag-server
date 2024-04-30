@@ -9,13 +9,13 @@ public class DocumentChunkDto {
 
     private String content;
 
-    private DocumentChunkEntity.DocumentChunkType type;
+    private DocumentChunkEntity.DocumentChunkModifyType type;
 
-    public DocumentChunkEntity.DocumentChunkType getType() {
+    public DocumentChunkEntity.DocumentChunkModifyType getType() {
         return type;
     }
 
-    public void setType(DocumentChunkEntity.DocumentChunkType type) {
+    public void setType(DocumentChunkEntity.DocumentChunkModifyType type) {
         this.type = type;
     }
 

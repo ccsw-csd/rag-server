@@ -1,6 +1,7 @@
 package com.cca.ia.rag.document.embedding;
 
 import com.cca.ia.rag.collection.model.CollectionEntity;
+import com.cca.ia.rag.document.DocumentUtils;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import com.cca.ia.rag.document.model.DocumentFileEntity;
 import com.cca.ia.rag.s3.RemoteFileService;
@@ -63,6 +64,7 @@ public class EmbeddingServiceDefault implements EmbeddingService {
         for (DocumentChunkEntity chunk : chunks) {
 
             metadata.put("chunk-order", chunk.getOrder());
+            metadata.put("chunk-modify-type", chunk.getModifyType());
             metadata.put("chunk-type", chunk.getType());
 
             String content = chunk.getContent();
@@ -79,11 +81,71 @@ public class EmbeddingServiceDefault implements EmbeddingService {
         return chunks;
     }
 
+    private List<Document> findSimilarityCodes(VectorStore vectorStore, String question, long maxTokens) {
+        if (maxTokens == 0) {
+            return new ArrayList<>();
+        }
+
+        List<Document> codesFound = vectorStore.similaritySearch(SearchRequest.defaults().withQuery(question).withTopK(100).withSimilarityThreshold(0.5d).withFilterExpression("'chunk-type' == 'CODE'"));
+
+        long actualTokens = 0;
+
+        List<Document> documentList = new ArrayList<>();
+        for (Document document : codesFound) {
+
+            long tokens = DocumentUtils.countTokens(document.getContent());
+            actualTokens += tokens;
+
+            if (actualTokens < maxTokens) {
+                documentList.add(document);
+            } else {
+                break;
+            }
+
+        }
+
+        return documentList;
+    }
+
+    private List<Document> findSimilarityDocumentations(VectorStore vectorStore, String question, long maxTokens) {
+        if (maxTokens == 0) {
+            return new ArrayList<>();
+        }
+
+        List<Document> documentsFound = vectorStore.similaritySearch(SearchRequest.defaults().withQuery(question).withTopK(100).withSimilarityThreshold(0.7d));
+
+        long actualTokens = 0;
+
+        List<Document> documentList = new ArrayList<>();
+        for (Document document : documentsFound) {
+
+            long tokens = DocumentUtils.countTokens(document.getContent());
+            actualTokens += tokens;
+
+            if (actualTokens < maxTokens) {
+                documentList.add(document);
+            } else {
+                break;
+            }
+
+        }
+
+        return documentList;
+    }
+
     @Override
-    public List<Document> findSimilarity(String collectionName, String question) {
+    public List<Document> findSimilarity(String collectionName, String question, int codeQuestion, long maxTokens) {
         VectorStore vectorStore = getVectorStore(collectionName);
 
-        return vectorStore.similaritySearch(SearchRequest.defaults().withQuery(question).withTopK(10).withSimilarityThreshold(0.6d));
+        long maxTokensDocumentation = (long) (maxTokens * (100 - codeQuestion) / 100.0d);
+        long maxTokensCode = (long) (maxTokens * codeQuestion / 100.0d);
+
+        List<Document> documents = new ArrayList<>();
+
+        documents.addAll(findSimilarityDocumentations(vectorStore, question, maxTokensDocumentation));
+        documents.addAll(findSimilarityCodes(vectorStore, question, maxTokensCode));
+
+        return documents;
     }
 
     private VectorStore getVectorStore(String collectionName) {

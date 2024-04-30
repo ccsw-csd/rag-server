@@ -26,6 +26,14 @@ public class DocumentUtils {
         return chunks;
     }
 
+    public static long countTokens(String content) {
+
+        long tokensByWords = (long) (content.split("\\s+").length / 0.6d);
+        long tokensByChars = (long) (content.replaceAll(" ", "").replaceAll("\n", "").length() / 3.25d);
+
+        return Math.max(tokensByWords, tokensByChars);
+    }
+
     private static String trimEmptyLines(String content) {
         return content.replaceAll("\\n+$", "").replaceFirst("^\\n+", "");
     }

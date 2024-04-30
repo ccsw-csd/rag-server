@@ -6,6 +6,8 @@ import com.cca.ia.rag.chat.model.EmbeddingMessage;
 import com.cca.ia.rag.chat.model.MessageDto;
 import com.cca.ia.rag.collection.CollectionRepository;
 import com.cca.ia.rag.collection.model.CollectionEntity;
+import com.cca.ia.rag.config.security.UserUtils;
+import com.cca.ia.rag.document.DocumentUtils;
 import com.cca.ia.rag.document.embedding.EmbeddingService;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import com.cca.ia.rag.document.model.DocumentChunkRepository;
@@ -13,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.ChatClient;
 import org.springframework.ai.chat.ChatResponse;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
@@ -41,7 +44,8 @@ public class ChatServiceDefault implements ChatService {
     @Value("classpath:/prompts/system-chatbot.st")
     private Resource chatbotSystemPromptResource;
 
-    private final ChatClient chatClient;
+    @Autowired
+    private ChatClient chatClient;
 
     @Autowired
     private ChatRepository chatRepository;
@@ -58,12 +62,8 @@ public class ChatServiceDefault implements ChatService {
     @Autowired
     private CollectionRepository collectionRepository;
 
-    @Autowired
-    public ChatServiceDefault(ChatClient chatClient) {
-        this.chatClient = chatClient;
-        //this.vectorStore = vectorStore;
-    }
 
+    /*
     public String generate(String message, boolean stuffit) {
         Message systemMessage = getSystemMessage(message, stuffit);
         UserMessage userMessage = new UserMessage(message);
@@ -74,6 +74,7 @@ public class ChatServiceDefault implements ChatService {
         logger.info("AI responded.");
         return chatResponse.getResult().getOutput().getContent();
     }
+
 
     private Message getSystemMessage(String query, boolean stuffit) {
         if (stuffit) {
@@ -88,42 +89,66 @@ public class ChatServiceDefault implements ChatService {
             return new SystemPromptTemplate(this.chatbotSystemPromptResource).createMessage();
         }
     }
+ */
+
+    private int isCodeQuestion(String question) {
+
+        Message assistantMessage = new AssistantMessage("Eres un Agente Decisor que decide si una pregunta de un usuario hace referencia con el código fuente del proyecto. "
+                + "Debes tener en cuenta que código fuente del proyecto está escrito en Java, Spring boot o Angular, así que busca palabras clave en la pregunta del usuario. "
+                + "La respuesta debe ser el porcentaje de fiabilidad (entre 0 y 100) de que la pregunta se refiere a código fuente. Siendo 100 una fiabilidad del 100% y 0 una fiabilidad del 0%. Responde solamente con un número entero. \n");
+        UserMessage userMessage = new UserMessage("La pregunta de usuario es la siguiente: " + question);
+
+        Prompt prompt = new Prompt(List.of(assistantMessage, userMessage), OpenAiChatOptions.builder().withModel("gpt-3.5-turbo-0125").withTemperature(0.1f).build());
+
+        ChatResponse chatResponse = chatClient.call(prompt);
+        String response = chatResponse.getResult().getOutput().getContent().trim();
+
+        try {
+            return Integer.parseInt(response);
+        } catch (Exception e) {
+            return 50;
+        }
+    }
 
     @Override
     public ConversationEntity sendQuestion(Long collectionId, String question) {
         long start = System.currentTimeMillis();
+
+        SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(this.qaSystemPromptResource);
+
+        long spentTokens = DocumentUtils.countTokens(systemPromptTemplate.getTemplate() + question);
+        long maxTokens = 10000;
+        long maxTokensForSearch = maxTokens - spentTokens;
+
+        int codeQuestion = isCodeQuestion(question);
         CollectionEntity collection = collectionRepository.findById(collectionId).orElseThrow();
+        List<Document> similarDocuments = embeddingService.findSimilarity(collection.getName(), question, codeQuestion, maxTokensForSearch);
+        String documentContent = similarDocuments.stream().map(entry -> entry.getContent()).collect(Collectors.joining("\n"));
+
+
+
+        /*
+        if (true)
+            return null;
+        */
+
+        Message systemMessage = systemPromptTemplate.createMessage(Map.of("documents", documentContent));
+        UserMessage userMessage = new UserMessage(question);
+
+        Prompt prompt = new Prompt(List.of(systemMessage, userMessage), OpenAiChatOptions.builder().withModel("gpt-3.5-turbo-0125").withTemperature(0.7f).build());
+
+        ChatResponse chatResponse = chatClient.call(prompt);
+        long end = System.currentTimeMillis();
 
         ChatEntity chat = chatRepository.findById(1L).orElseThrow();
 
         ConversationEntity conversation = new ConversationEntity();
         conversation.setChat(chat);
-        conversation.setAuthor("Pablo Jiménez Martínez"); //TODO cambiar
+        conversation.setAuthor(UserUtils.getUserDetails().getDisplayName());
         conversation.setUser(true);
         conversation.setContent(question);
         conversation.setDate(LocalDateTime.now());
         conversationRepository.save(conversation);
-
-        logger.info("Recibimos pregunta: " + question);
-
-        logger.info("Buscamos documentos similares");
-        List<Document> similarDocuments = embeddingService.findSimilarity(collection.getName(), question);
-        String documentContent = similarDocuments.stream().map(entry -> entry.getContent()).collect(Collectors.joining("\n"));
-        logger.info("Encontrados " + similarDocuments.size() + " documentos relevantes.");
-
-        SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(this.qaSystemPromptResource);
-        Message systemMessage = systemPromptTemplate.createMessage(Map.of("documents", documentContent));
-        UserMessage userMessage = new UserMessage(question);
-
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage), OpenAiChatOptions.builder().withModel("gpt-3.5-turbo-0125").withTemperature(0.7f).build());
-        logger.info("Generamos prompt para IA.");
-
-        logger.info("Preguntamos al modelo de IA");
-
-        ChatResponse chatResponse = chatClient.call(prompt);
-        long end = System.currentTimeMillis();
-
-        logger.info("La IA ha respondido: " + chatResponse.getResult().getOutput().getContent());
 
         MessageDto messageDto = new MessageDto();
 
@@ -169,7 +194,7 @@ public class ChatServiceDefault implements ChatService {
             embeddingMessage.setId(chunk.getId());
             embeddingMessage.setEmbeddingId(chunk.getEmbedding());
             embeddingMessage.setContent(chunk.getContent());
-            embeddingMessage.setType(chunk.getType());
+            embeddingMessage.setType(chunk.getModifyType());
             embeddingMessage.setOrder(chunk.getOrder());
             embeddingMessage.setDocument(chunk.getDocument().getFilename());
 
