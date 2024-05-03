@@ -12,4 +12,14 @@ public class UserUtils {
         return (UserInfoDto) SecurityContextHolder.getContext().getAuthentication().getDetails();
     }
 
+    public static boolean isGranted(String appCode, String roleGranted) {
+        for (String role : getUserDetails().getAppRoles(appCode)) {
+            if (role.equals(roleGranted)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 }
