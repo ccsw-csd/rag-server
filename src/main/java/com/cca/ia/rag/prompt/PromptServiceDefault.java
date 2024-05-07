@@ -44,13 +44,12 @@ public class PromptServiceDefault implements PromptService {
 
     @Override
     public List<String> getTags(String query) {
-        System.out.println("Buscamos por " + query);
         return promptRepository.findTags(query);
     }
 
     @Override
     @Transactional(readOnly = false)
-    public void save(PromptEditDto data) {
+    public long save(PromptEditDto data) {
 
         PromptEntity prompt = null;
 
@@ -85,6 +84,8 @@ public class PromptServiceDefault implements PromptService {
         }
 
         promptPostRepository.saveAll(promptPosts);
+
+        return prompt.getId();
     }
 
     @Override

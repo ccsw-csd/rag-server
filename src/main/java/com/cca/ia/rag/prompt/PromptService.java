@@ -12,7 +12,7 @@ public interface PromptService {
 
     List<String> getTags(String query);
 
-    void save(PromptEditDto data);
+    long save(PromptEditDto data);
 
     PromptEditDto getForEdit(long id);
 

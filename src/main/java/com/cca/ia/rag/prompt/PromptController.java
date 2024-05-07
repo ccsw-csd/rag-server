@@ -46,8 +46,9 @@ public class PromptController {
     }
 
     @PutMapping("")
-    public void save(@RequestBody PromptEditDto data) {
-        promptService.save(data);
+    @ResponseBody
+    public long save(@RequestBody PromptEditDto data) {
+        return promptService.save(data);
     }
 
     @PostMapping("/{id}/like")
