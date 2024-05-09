@@ -38,8 +38,12 @@ public class JsonWebTokenAuthenticationFilter extends OncePerRequestFilter {
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
 
-            if (jwtService.validateToken(token) == false)
+            try {
+                if (jwtService.validateToken(token) == false)
+                    throw new ForbiddenException();
+            } catch (Exception e) {
                 throw new ForbiddenException();
+            }
 
             UserInfoDto userDetails = jwtService.createUserDetails(token);
 
