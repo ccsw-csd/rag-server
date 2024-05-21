@@ -1,5 +1,6 @@
 package com.cca.ia.rag.collection;
 
+import com.cca.ia.rag.collection.model.CollectionDto;
 import com.cca.ia.rag.collection.model.CollectionEntity;
 
 import java.util.List;
@@ -20,4 +21,5 @@ public interface CollectionService {
      */
     CollectionEntity findById(Long id);
 
+    void save(CollectionDto data);
 }

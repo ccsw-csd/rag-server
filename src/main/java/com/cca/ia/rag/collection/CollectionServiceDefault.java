@@ -1,7 +1,9 @@
 package com.cca.ia.rag.collection;
 
+import com.cca.ia.rag.collection.model.CollectionDto;
 import com.cca.ia.rag.collection.model.CollectionEntity;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,20 +28,19 @@ public class CollectionServiceDefault implements CollectionService {
         return this.collectionRepository.findById(id).orElse(null);
     }
 
-    /*
     @Override
     @Transactional
-    public CollectionEntity save(CollectionDto data) {
+    public void save(CollectionDto data) {
 
-        CollectionEntity collection = new CollectionEntity();
-        if (data.getId() != null) {
-            collection.setId(data.getId());
-        }
-        collection.setDescription(data.getDescription());
-        collection.setName(data.getName());
-        return this.collectionRepository.save(collection);
+        CollectionEntity collection = null;
+        if (data.getId() != null)
+            collection = findById(data.getId());
+        else
+            collection = new CollectionEntity();
+
+        BeanUtils.copyProperties(data, collection);
+
+        this.collectionRepository.save(collection);
     }
-
-     */
 
 }

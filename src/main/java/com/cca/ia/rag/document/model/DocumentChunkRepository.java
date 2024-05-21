@@ -8,6 +8,8 @@ public interface DocumentChunkRepository extends CrudRepository<DocumentChunkEnt
 
     List<DocumentChunkEntity> findByDocumentIdAndModifyTypeOrderByOrderDesc(Long documentId, DocumentChunkEntity.DocumentChunkModifyType type);
 
+    List<DocumentChunkEntity> findByDocumentDocumentCollectionIdAndDocumentFilenameLike(Long id, String filename);
+
     List<DocumentChunkEntity> findByDocumentId(Long id);
 
     List<DocumentChunkEntity> findByDocumentDocumentId(Long id);

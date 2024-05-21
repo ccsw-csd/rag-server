@@ -4,6 +4,7 @@ import com.cca.ia.rag.collection.model.CollectionDto;
 import com.cca.ia.rag.collection.model.CollectionEntity;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +28,7 @@ public class CollectionController {
      * @return {@link List} de {@link CollectionDto}
      */
 
-    @RequestMapping(path = "/", method = RequestMethod.GET)
+    @RequestMapping(path = "", method = RequestMethod.GET)
     public List<CollectionDto> findAll() {
 
         List<CollectionEntity> collections = this.collectionService.findAll();
@@ -39,13 +40,12 @@ public class CollectionController {
     /**
      * @param data
      * @return
-
-     @RequestMapping(path = "", method = RequestMethod.POST)
-     public CollectionDto save(@RequestBody CollectionDto data) {
-
-     CollectionEntity collection = this.collectionService.save(data);
-     return mapper.map(collection, CollectionDto.class);
-     }
      */
+
+    @RequestMapping(path = "", method = RequestMethod.POST)
+    public void save(@RequestBody CollectionDto data) {
+
+        this.collectionService.save(data);
+    }
 
 }
