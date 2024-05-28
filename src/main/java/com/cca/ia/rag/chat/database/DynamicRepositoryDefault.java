@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -209,14 +210,23 @@ public class DynamicRepositoryDefault implements DynamicRepository {
         return text.replaceAll("\n", " ").replaceAll("\r", " ");
     }
 
+    Map<String, DataSource> mapDatasource = new HashMap<>();
+
     private JdbcTemplate jdbcTemplate(String url, String username, String password) throws SQLException {
 
-        DataSourceBuilder dataSourceBuilder = DataSourceBuilder.create();
-        dataSourceBuilder.driverClassName("org.mariadb.jdbc.Driver");
-        dataSourceBuilder.url(url);
-        dataSourceBuilder.username(username);
-        dataSourceBuilder.password(password);
-        DataSource dataSource = dataSourceBuilder.build();
+        DataSource dataSource = mapDatasource.get(url);
+
+        if (dataSource == null) {
+
+            DataSourceBuilder dataSourceBuilder = DataSourceBuilder.create();
+            dataSourceBuilder.driverClassName("org.mariadb.jdbc.Driver");
+            dataSourceBuilder.url(url);
+            dataSourceBuilder.username(username);
+            dataSourceBuilder.password(password);
+            dataSource = dataSourceBuilder.build();
+
+            mapDatasource.put(url, dataSource);
+        }
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
         return jdbcTemplate;
