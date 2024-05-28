@@ -1,8 +1,6 @@
 package com.cca.ia.rag.chat.model;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 public class MessageDto {
 
@@ -17,8 +15,6 @@ public class MessageDto {
     private LocalDateTime date;
 
     private Long spentTime;
-
-    private List<String> embeddings = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -76,11 +72,4 @@ public class MessageDto {
         this.spentTime = spentTime;
     }
 
-    public List<String> getEmbeddings() {
-        return embeddings;
-    }
-
-    public void setEmbeddings(List<String> embeddings) {
-        this.embeddings = embeddings;
-    }
 }

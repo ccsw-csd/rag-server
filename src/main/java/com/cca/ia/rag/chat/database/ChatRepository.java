@@ -1,4 +1,4 @@
-package com.cca.ia.rag.chat;
+package com.cca.ia.rag.chat.database;
 
 import com.cca.ia.rag.chat.model.ChatEntity;
 import org.springframework.data.repository.CrudRepository;

@@ -51,7 +51,7 @@ public class FactoryDocumentParserServiceDefault implements FactoryDocumentParse
             return DocumentChunkEntity.DocumentChunkType.CODE;
         }
 
-        return null;
+        return DocumentChunkEntity.DocumentChunkType.DOCUMENT;
     }
 
 }

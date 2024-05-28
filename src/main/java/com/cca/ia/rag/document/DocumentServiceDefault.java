@@ -1,6 +1,6 @@
 package com.cca.ia.rag.document;
 
-import com.cca.ia.rag.collection.CollectionRepository;
+import com.cca.ia.rag.collection.database.CollectionRepository;
 import com.cca.ia.rag.collection.model.CollectionEntity;
 import com.cca.ia.rag.document.dto.*;
 import com.cca.ia.rag.document.embedding.EmbeddingService;
@@ -328,6 +328,9 @@ public class DocumentServiceDefault implements DocumentService {
     public void saveDocumentChunks(Long documentId, DocumentChunkSaveDto dto) throws Exception {
 
         DocumentFileEntity documentFile = documentFileRepository.findById(documentId).orElse(null);
+        documentFile.setStatus(DocumentFileEntity.DocumentStatus.CHUNK);
+        documentFileRepository.save(documentFile);
+
         CollectionEntity collection = documentFile.getDocument().getCollection();
 
         List<DocumentChunkEntity> documentChunks = new ArrayList<>();
@@ -419,6 +422,29 @@ public class DocumentServiceDefault implements DocumentService {
     @Override
     public List<DocumentFileEntity> getDocumentsById(List<Long> documentsId) {
         return documentFileRepository.findByIdIn(documentsId);
+    }
+
+    @Override
+    public void createDocument(Long collectionId, CreateDocumentDto dto) {
+
+        CollectionEntity collection = collectionRepository.findById(collectionId).orElse(null);
+
+        DocumentEntity document = new DocumentEntity();
+
+        document.setCollection(collection);
+        document.setFilename(dto.getFilename());
+        document.setType(DocumentEntity.DocumentType.DOCUMENT);
+
+        documentRepository.save(document);
+
+        DocumentFileEntity documentFile = new DocumentFileEntity();
+
+        documentFile.setPath(null);
+        documentFile.setFilename(dto.getFilename());
+        documentFile.setDocument(document);
+        documentFile.setStatus(DocumentFileEntity.DocumentStatus.CHUNK);
+
+        documentFileRepository.save(documentFile);
     }
 
 }

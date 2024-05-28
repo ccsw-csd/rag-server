@@ -5,6 +5,7 @@ import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import com.cca.ia.rag.document.model.DocumentFileEntity;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +21,7 @@ public class DocumentController {
     @Autowired
     private ModelMapper mapper;
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
     @DeleteMapping("/delete-from-source/{documentId}")
     public void deleteAllFromSourceDocument(@PathVariable Long documentId) throws Exception {
 
@@ -31,6 +33,7 @@ public class DocumentController {
 
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
     @PostMapping("/generate-embeddings/{parentDocumentId}")
     public void generateEmbeddings(@PathVariable Long parentDocumentId, @RequestBody GenerateEmbeddingsDto data) throws Exception {
 
@@ -38,6 +41,7 @@ public class DocumentController {
 
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
     @PostMapping("/list-by-ids")
     public List<DocumentFileDto> getDocumentsById(@RequestParam("ids") List<Long> documentsId) {
 
@@ -46,12 +50,21 @@ public class DocumentController {
         return documents.stream().map(e -> mapper.map(e, DocumentFileDto.class)).collect(Collectors.toList());
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
     @PostMapping("/{documentId}/chunks")
     public void saveDocumentChunks(@PathVariable Long documentId, @RequestBody DocumentChunkSaveDto dto) throws Exception {
 
         documentService.saveDocumentChunks(documentId, dto);
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
+    @PutMapping("/create-in-collection/{collectionId}")
+    public void createDocument(@PathVariable Long collectionId, @RequestBody CreateDocumentDto dto) {
+
+        documentService.createDocument(collectionId, dto);
+    }
+
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
     @GetMapping("/by-collection/{collectionId}")
     public List<DocumentFileDto> getDocuments(@PathVariable Long collectionId) {
 
@@ -60,6 +73,7 @@ public class DocumentController {
         return documents.stream().map(e -> mapper.map(e, DocumentFileDto.class)).collect(Collectors.toList());
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
     @GetMapping("/{documentId}/chunks/{type}")
     public List<DocumentChunkDto> getDocumentChunks(@PathVariable Long documentId, @PathVariable Integer type) {
 
@@ -68,6 +82,7 @@ public class DocumentController {
         return documents.stream().map(e -> mapper.map(e, DocumentChunkDto.class)).collect(Collectors.toList());
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
     @GetMapping("/{documentId}/chunk/{chunkId}/content")
     public DocumentChunkContentDto getDocuments(@PathVariable Long documentId, @PathVariable Long chunkId) {
 
@@ -78,6 +93,7 @@ public class DocumentController {
         }
     }
 
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('CHAT')")
     @RequestMapping(path = "/upload-in-collection/{collectionId}", method = RequestMethod.POST)
     public void uploadDocuments(@PathVariable Long collectionId, @ModelAttribute DocumentUploadFormDataDto data) {
 

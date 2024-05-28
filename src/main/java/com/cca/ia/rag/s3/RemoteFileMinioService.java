@@ -2,11 +2,9 @@ package com.cca.ia.rag.s3;
 
 import io.minio.*;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
 
-@Service
 public class RemoteFileMinioService implements RemoteFileService {
 
     @Value("${s3.endpoint}")

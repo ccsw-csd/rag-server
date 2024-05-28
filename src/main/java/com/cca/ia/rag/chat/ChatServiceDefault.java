@@ -1,11 +1,18 @@
 package com.cca.ia.rag.chat;
 
+import com.cca.ia.rag.chat.database.ChatRepository;
+import com.cca.ia.rag.chat.database.ConversationContextRepository;
+import com.cca.ia.rag.chat.database.ConversationRepository;
+import com.cca.ia.rag.chat.database.DynamicRepository;
 import com.cca.ia.rag.chat.model.ChatDto;
 import com.cca.ia.rag.chat.model.ChatEntity;
 import com.cca.ia.rag.chat.model.ConversationEntity;
-import com.cca.ia.rag.chat.model.EmbeddingMessage;
-import com.cca.ia.rag.collection.CollectionRepository;
+import com.cca.ia.rag.chat.model.ConversationPropertiesEntity;
+import com.cca.ia.rag.collection.CollectionService;
+import com.cca.ia.rag.collection.database.CollectionRepository;
 import com.cca.ia.rag.collection.model.CollectionEntity;
+import com.cca.ia.rag.collection.model.CollectionPropertyDto;
+import com.cca.ia.rag.collection.model.CollectionPropertyEntity;
 import com.cca.ia.rag.config.security.UserUtils;
 import com.cca.ia.rag.document.DocumentUtils;
 import com.cca.ia.rag.document.embedding.EmbeddingService;
@@ -21,12 +28,13 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.openai.OpenAiChatClient;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -39,12 +47,6 @@ import java.util.stream.Collectors;
 public class ChatServiceDefault implements ChatService {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatService.class);
-
-    @Value("classpath:/prompts/system-qa.st")
-    private Resource qaSystemPromptResource;
-
-    @Autowired
-    private ChatClient chatClient;
 
     @Autowired
     private ChatRepository chatRepository;
@@ -61,7 +63,26 @@ public class ChatServiceDefault implements ChatService {
     @Autowired
     private CollectionRepository collectionRepository;
 
-    private int isCodeQuestion(String question) {
+    @Autowired
+    private DynamicRepository dynamicRepository;
+
+    @Autowired
+    private ConversationContextRepository conversationContextRepository;
+
+    @Autowired
+    private CollectionService collectionService;
+
+    private ChatClient getChatClient(Long collectionId) {
+
+        List<CollectionPropertyDto> data = collectionService.findProperties(collectionId);
+
+        String apiKey = data.stream().filter(e -> e.getKey().equals("apiKey")).findFirst().orElseThrow().getValue();
+
+        return new OpenAiChatClient(new OpenAiApi(apiKey));
+
+    }
+
+    private int isCodeQuestion(Long collectionId, String question) {
 
         Message assistantMessage = new AssistantMessage("Eres un Agente Decisor que decide si una pregunta de un usuario hace referencia con el código fuente del proyecto. "
                 + "Debes tener en cuenta que código fuente del proyecto está escrito en Java, Spring boot o Angular, así que busca palabras clave en la pregunta del usuario. "
@@ -70,7 +91,7 @@ public class ChatServiceDefault implements ChatService {
 
         Prompt prompt = new Prompt(List.of(assistantMessage, userMessage), OpenAiChatOptions.builder().withModel("gpt-3.5-turbo-0125").withTemperature(0.1f).build());
 
-        ChatResponse chatResponse = chatClient.call(prompt);
+        ChatResponse chatResponse = getChatClient(collectionId).call(prompt);
         String response = chatResponse.getResult().getOutput().getContent().trim();
 
         try {
@@ -143,8 +164,7 @@ public class ChatServiceDefault implements ChatService {
 
     }
 
-    private List<Document> generateSystemMessage(CollectionEntity collection, QuestionParsed question, long spentTokens) {
-        List<Document> similarDocuments = new ArrayList<>();
+    private void generateSystemMessage(CollectionEntity collection, QuestionParsed question, long spentTokens, MessageWithDocuments messageWithDocuments) {
         long maxTokens = 10000;
         long maxTokensForSearch = maxTokens - spentTokens;
 
@@ -154,7 +174,6 @@ public class ChatServiceDefault implements ChatService {
 
                 filename = filename.replaceAll("\\*", "%");
 
-                Map<String, Object> metadata = Map.of("file", filename, "type", "manual-type");
                 List<DocumentChunkEntity> documentChunks = documentChunkRepository.findByDocumentDocumentCollectionIdAndDocumentFilenameLike(collection.getId(), filename);
 
                 for (DocumentChunkEntity documentChunk : documentChunks) {
@@ -163,15 +182,15 @@ public class ChatServiceDefault implements ChatService {
                     maxTokensForSearch -= tokens;
 
                     if (maxTokensForSearch < 0)
-                        return similarDocuments;
+                        return;
 
-                    similarDocuments.add(new Document(documentChunk.getEmbedding(), documentChunk.getContent(), metadata));
+                    messageWithDocuments.addDocument(documentChunk, documentChunk.getContent());
                 }
             }
         }
 
         if (question.noAutocontext) {
-            return similarDocuments;
+            return;
         }
 
         if (maxTokensForSearch > 0) {
@@ -182,14 +201,128 @@ public class ChatServiceDefault implements ChatService {
             } else if (question.onlyCode) {
                 codeQuestion = 100;
             } else {
-                codeQuestion = isCodeQuestion(question.question);
+                codeQuestion = isCodeQuestion(collection.getId(), question.question);
             }
 
-            similarDocuments.addAll(embeddingService.findSimilarity(collection.getName(), question.question, codeQuestion, maxTokensForSearch));
+            List<Document> documentVectorDB = embeddingService.findSimilarity(collection, question.question, codeQuestion, maxTokensForSearch);
+            List<String> embeddings = documentVectorDB.stream().map(entry -> entry.getId()).collect(Collectors.toList());
+
+            List<DocumentChunkEntity> documentChunks = documentChunkRepository.findByDocumentDocumentCollectionIdAndEmbeddingIn(collection.getId(), embeddings);
+
+            for (DocumentChunkEntity documentChunk : documentChunks) {
+                messageWithDocuments.addDocument(documentChunk, documentChunk.getContent());
+            }
+
+        }
+    }
+
+    class MessageWithDocuments {
+        private Message message;
+
+        private List<DocumentChunkEntity> documents = new ArrayList<>();
+
+        private StringBuilder content = new StringBuilder();
+
+        public Message getMessage() {
+            return message;
         }
 
-        return similarDocuments;
+        public void setMessage(Message message) {
+            this.message = message;
+        }
 
+        public List<DocumentChunkEntity> getDocuments() {
+            return documents;
+        }
+
+        public String getContent() {
+            return content.toString();
+        }
+
+        public void addDocument(DocumentChunkEntity document, String content) {
+            this.documents.add(document);
+            this.content.append(content + "\n");
+        }
+
+    }
+
+    private MessageWithDocuments generateSystemMessage(CollectionEntity collection, QuestionParsed questionParsed) {
+
+        MessageWithDocuments messageWithDocuments = new MessageWithDocuments();
+
+        List<CollectionPropertyEntity> prompts = collectionService.findPrompts(collection.getId());
+
+        if (questionParsed.query) {
+            List<DocumentChunkEntity> documentChunks = documentChunkRepository.findByDocumentDocumentCollectionIdAndDocumentFilenameLike(collection.getId(), "%database%");
+
+            for (DocumentChunkEntity documentChunk : documentChunks) {
+                messageWithDocuments.addDocument(documentChunk, documentChunk.getContent());
+            }
+
+            String promptText = prompts.stream().filter(e -> e.getKey().toLowerCase().contains("sqlsystemprompt")).findFirst().orElseThrow().getValue();
+
+            SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(promptText);
+            Message systemMessage = systemPromptTemplate.createMessage(Map.of("data", messageWithDocuments.getContent()));
+            messageWithDocuments.setMessage(systemMessage);
+
+        } else {
+            String promptText = prompts.stream().filter(e -> e.getKey().toLowerCase().contains("documentsystemprompt")).findFirst().orElseThrow().getValue();
+
+            SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(promptText);
+            long spentTokens = DocumentUtils.countTokens(promptText + questionParsed.question);
+            generateSystemMessage(collection, questionParsed, spentTokens, messageWithDocuments);
+
+            Message systemMessage = systemPromptTemplate.createMessage(Map.of("data", messageWithDocuments.getContent()));
+            messageWithDocuments.setMessage(systemMessage);
+        }
+
+        return messageWithDocuments;
+
+    }
+
+    class ParsedResponse {
+        ChatResponse chatResponse;
+        String response;
+
+        public ParsedResponse(ChatResponse chatResponse, String response) {
+            this.chatResponse = chatResponse;
+            this.response = response;
+        }
+    }
+
+    private ParsedResponse launchIAQuestion(Long collectionId, QuestionParsed questionParsed, Prompt prompt, int retries) {
+
+        ChatResponse chatResponse = getChatClient(collectionId).call(prompt);
+        String response = chatResponse.getResult().getOutput().getContent();
+
+        if (questionParsed.query) {
+            List<CollectionPropertyDto> properties = this.collectionService.findProperties(collectionId);
+            String databaseURL = properties.stream().filter(e -> e.getKey().equals("databaseURL")).findFirst().orElseThrow().getValue();
+            String databaseUsername = properties.stream().filter(e -> e.getKey().equals("databaseUsername")).findFirst().orElseThrow().getValue();
+            String databasePassword = properties.stream().filter(e -> e.getKey().equals("databasePassword")).findFirst().orElseThrow().getValue();
+
+            if (StringUtils.hasText(databaseURL) == false || StringUtils.hasText(databaseUsername) == false || StringUtils.hasText(databasePassword) == false) {
+                return new ParsedResponse(chatResponse, "No se han configurado las credenciales de la base de datos");
+            }
+
+            try {
+                response = dynamicRepository.launchQuery(response, databaseURL, databaseUsername, databasePassword);
+            } catch (Exception e) {
+
+                if (retries <= 0) {
+                    return new ParsedResponse(chatResponse, "No se ha podido obtener una respuesta para la query: \n" + response);
+                } else {
+                    return launchIAQuestion(collectionId, questionParsed, prompt, retries - 1);
+                }
+            }
+
+        }
+
+        return new ParsedResponse(chatResponse, response);
+    }
+
+    private ParsedResponse launchIAQuestion(Long collectionId, QuestionParsed questionParsed, Prompt prompt) {
+        return launchIAQuestion(collectionId, questionParsed, prompt, 2);
     }
 
     @Override
@@ -203,18 +336,14 @@ public class ChatServiceDefault implements ChatService {
 
         QuestionParsed questionParsed = new QuestionParsed(question);
 
-        SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(this.qaSystemPromptResource);
-        long spentTokens = DocumentUtils.countTokens(systemPromptTemplate.getTemplate() + questionParsed.question);
-        List<Document> similarDocuments = generateSystemMessage(collection, questionParsed, spentTokens);
-        String documentContent = similarDocuments.stream().map(entry -> entry.getContent()).collect(Collectors.joining("\n"));
-
-        Message systemMessage = systemPromptTemplate.createMessage(Map.of("documents", documentContent));
+        MessageWithDocuments systemMessage = generateSystemMessage(collection, questionParsed);
 
         UserMessage userMessage = new UserMessage(questionParsed.question);
 
-        Prompt prompt = new Prompt(List.of(systemMessage, userMessage), OpenAiChatOptions.builder().withModel("gpt-3.5-turbo-0125").withTemperature(0.7f).build());
+        Prompt prompt = new Prompt(List.of(systemMessage.getMessage(), userMessage), OpenAiChatOptions.builder().withModel("gpt-3.5-turbo-0125").withTemperature(0.7f).build());
 
-        ChatResponse chatResponse = chatClient.call(prompt);
+        ParsedResponse launchIAQuestion = launchIAQuestion(collection.getId(), questionParsed, prompt);
+
         long end = System.currentTimeMillis();
 
         ConversationEntity conversation = new ConversationEntity();
@@ -225,22 +354,47 @@ public class ChatServiceDefault implements ChatService {
         conversation.setDate(LocalDateTime.now());
         conversationRepository.save(conversation);
 
-        List<String> embeddings = similarDocuments.stream().map(entry -> entry.getId()).collect(Collectors.toList());
-
-        String response = chatResponse.getResult().getOutput().getContent();
+        //List<String> embeddings = systemMessage.getDocuments().stream().map(entry -> entry.getId()).collect(Collectors.toList());
 
         ConversationEntity conversationResponse = new ConversationEntity();
         conversationResponse.setChat(chatEntity);
         conversationResponse.setAuthor("Assistant"); //TODO cambiar
         conversationResponse.setUser(false);
-        conversationResponse.setContent(response);
-        conversationResponse.setTokens(chatResponse.getMetadata().getUsage().getTotalTokens());
+        conversationResponse.setContent(launchIAQuestion.response);
+        if (launchIAQuestion.chatResponse != null && launchIAQuestion.chatResponse.getMetadata() != null)
+            conversationResponse.setTokens(launchIAQuestion.chatResponse.getMetadata().getUsage().getTotalTokens());
         conversationResponse.setSpentTime(end - start);
         conversationResponse.setDate(LocalDateTime.now());
-        conversationResponse.setEmbeddings(embeddings);
         conversationRepository.save(conversationResponse);
 
+        saveConversationContext(systemMessage, conversationResponse);
+
         return conversationResponse;
+
+    }
+
+    private void saveConversationContext(MessageWithDocuments messageWithDocuments, ConversationEntity conversation) {
+
+        List<ConversationPropertiesEntity> context = new ArrayList<>();
+
+        for (DocumentChunkEntity document : messageWithDocuments.getDocuments()) {
+            ConversationPropertiesEntity contextEntity = new ConversationPropertiesEntity();
+
+            contextEntity.setChunkNumber(document.getOrder());
+            contextEntity.setFilename(document.getDocument().getFilename());
+            contextEntity.setPath(document.getDocument().getPath());
+            contextEntity.setTokens(DocumentUtils.countTokens(document.getContent()));
+            contextEntity.setType(document.getType());
+            contextEntity.setStatus(document.getDocument().getStatus());
+            contextEntity.setModifyType(document.getModifyType());
+            contextEntity.setEmbeddingId(document.getEmbedding());
+            contextEntity.setConversation(conversation);
+
+            context.add(contextEntity);
+        }
+
+        conversationContextRepository.saveAll(context);
+
     }
 
     @Override
@@ -251,30 +405,9 @@ public class ChatServiceDefault implements ChatService {
     }
 
     @Override
-    public List<EmbeddingMessage> getEmbeddingsFromMessageId(Long messageId) {
+    public List<ConversationPropertiesEntity> getEmbeddingsFromMessageId(Long conversationId) {
 
-        ConversationEntity message = conversationRepository.findById(messageId).orElseThrow();
-        CollectionEntity collection = message.getChat().getCollection();
-
-        List<DocumentChunkEntity> chunks = documentChunkRepository.findByDocumentDocumentCollectionIdAndEmbeddingIn(collection.getId(), message.getEmbeddings());
-
-        List<EmbeddingMessage> embeddings = new ArrayList<>();
-
-        for (DocumentChunkEntity chunk : chunks) {
-
-            EmbeddingMessage embeddingMessage = new EmbeddingMessage();
-
-            embeddingMessage.setId(chunk.getId());
-            embeddingMessage.setEmbeddingId(chunk.getEmbedding());
-            embeddingMessage.setContent(chunk.getContent());
-            embeddingMessage.setType(chunk.getModifyType());
-            embeddingMessage.setOrder(chunk.getOrder());
-            embeddingMessage.setDocument(chunk.getDocument().getFilename());
-
-            embeddings.add(embeddingMessage);
-        }
-
-        return embeddings;
+        return conversationContextRepository.findByConversationId(conversationId);
     }
 
     @Override
@@ -302,5 +435,22 @@ public class ChatServiceDefault implements ChatService {
         chat.setUpdateDate(LocalDateTime.now());
 
         return chatRepository.save(chat);
+    }
+
+    @Override
+    @Transactional(readOnly = false)
+    public void deleteChat(Long chatId) {
+
+        conversationRepository.deleteByChatId(chatId);
+
+        chatRepository.deleteById(chatId);
+    }
+
+    @Override
+    @Transactional(readOnly = false)
+    public void renameChat(Long chatId, String title) {
+        ChatEntity chat = chatRepository.findById(chatId).orElseThrow();
+        chat.setTitle(title);
+        chatRepository.save(chat);
     }
 }

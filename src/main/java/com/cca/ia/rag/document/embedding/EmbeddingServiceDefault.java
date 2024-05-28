@@ -1,15 +1,18 @@
 package com.cca.ia.rag.document.embedding;
 
+import com.cca.ia.rag.collection.CollectionService;
 import com.cca.ia.rag.collection.model.CollectionEntity;
+import com.cca.ia.rag.collection.model.CollectionPropertyDto;
 import com.cca.ia.rag.document.DocumentUtils;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import com.cca.ia.rag.document.model.DocumentFileEntity;
-import com.cca.ia.rag.s3.RemoteFileService;
 import org.springframework.ai.chroma.ChromaApi;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.id.IdGenerator;
 import org.springframework.ai.document.id.RandomIdGenerator;
 import org.springframework.ai.embedding.EmbeddingClient;
+import org.springframework.ai.openai.OpenAiEmbeddingClient;
+import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.ai.vectorsore.ChromaVectorStore;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
@@ -26,15 +29,24 @@ import java.util.Map;
 public class EmbeddingServiceDefault implements EmbeddingService {
 
     @Autowired
-    private EmbeddingClient embeddingClient;
-
-    @Autowired
-    private RemoteFileService remoteFileService;
-
-    @Autowired
     private ChromaApi chromaApi;
 
+    @Autowired
+    private CollectionService collectionService;
+
     private IdGenerator idGenerator = new RandomIdGenerator();
+
+    private EmbeddingClient getEmbeddingClient(Long collectionId) {
+
+        List<CollectionPropertyDto> data = collectionService.findProperties(collectionId);
+
+        String apiKey = data.stream().filter(e -> e.getKey().equals("apiKey")).findFirst().orElseThrow().getValue();
+
+        OpenAiApi openAiApi = new OpenAiApi(apiKey);
+        OpenAiEmbeddingClient embeddingClient = new OpenAiEmbeddingClient(openAiApi);
+
+        return embeddingClient;
+    }
 
     @Override
     public void deleteEmbeddings(CollectionEntity collection, List<DocumentChunkEntity> chunks) {
@@ -47,7 +59,7 @@ public class EmbeddingServiceDefault implements EmbeddingService {
         }
 
         if (ids.size() > 0) {
-            VectorStore vectorStore = getVectorStore(collection.getName());
+            VectorStore vectorStore = getVectorStore(collection);
             vectorStore.delete(ids);
         }
     }
@@ -75,7 +87,7 @@ public class EmbeddingServiceDefault implements EmbeddingService {
             documents.add(new Document(id, content, metadata));
         }
 
-        VectorStore vectorStore = getVectorStore(collection.getName());
+        VectorStore vectorStore = getVectorStore(collection);
         vectorStore.add(documents);
 
         return chunks;
@@ -134,8 +146,8 @@ public class EmbeddingServiceDefault implements EmbeddingService {
     }
 
     @Override
-    public List<Document> findSimilarity(String collectionName, String question, int codeQuestion, long maxTokens) {
-        VectorStore vectorStore = getVectorStore(collectionName);
+    public List<Document> findSimilarity(CollectionEntity collection, String question, int codeQuestion, long maxTokens) {
+        VectorStore vectorStore = getVectorStore(collection);
 
         long maxTokensDocumentation = (long) (maxTokens * (100 - codeQuestion) / 100.0d);
         long maxTokensCode = (long) (maxTokens * codeQuestion / 100.0d);
@@ -148,9 +160,10 @@ public class EmbeddingServiceDefault implements EmbeddingService {
         return documents;
     }
 
-    private VectorStore getVectorStore(String collectionName) {
+    private VectorStore getVectorStore(CollectionEntity collection) {
 
-        ChromaVectorStore vectorStore = new ChromaVectorStore(embeddingClient, chromaApi, collectionName);
+        EmbeddingClient embeddingClient = getEmbeddingClient(collection.getId());
+        ChromaVectorStore vectorStore = new ChromaVectorStore(embeddingClient, chromaApi, collection.getName());
 
         try {
             vectorStore.afterPropertiesSet();

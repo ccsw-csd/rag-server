@@ -1,6 +1,7 @@
 package com.cca.ia.rag;
 
 import org.springframework.ai.chroma.ChromaApi;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.ClientHttpRequestFactories;
@@ -22,6 +23,9 @@ public class Application {
         SpringApplication.run(Application.class, args);
     }
 
+    @Value("${chroma.url}")
+    private String chromaUrl;
+
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
@@ -29,7 +33,6 @@ public class Application {
 
     @Bean
     public ChromaApi chromaApi(RestTemplate restTemplate) {
-        String chromaUrl = "http://frparccsw:8000";
         ChromaApi chromaApi = new ChromaApi(chromaUrl, restTemplate);
         return chromaApi;
     }

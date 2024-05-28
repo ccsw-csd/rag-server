@@ -1,4 +1,4 @@
-package com.cca.ia.rag.collection;
+package com.cca.ia.rag.collection.database;
 
 import org.springframework.data.repository.CrudRepository;
 

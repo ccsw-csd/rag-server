@@ -3,8 +3,6 @@ package com.cca.ia.rag.chat.model;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "chat_conversation")
@@ -33,11 +31,6 @@ public class ConversationEntity {
 
     @Column(name = "date", nullable = false)
     private LocalDateTime date;
-
-    @ElementCollection(targetClass = String.class, fetch = FetchType.EAGER)
-    @CollectionTable(name = "chat_chunk", joinColumns = @JoinColumn(name = "conversation_id"))
-    @Column(name = "embedding", nullable = false)
-    private List<String> embeddings = new ArrayList<>();
 
     @Column(name = "spent_time", nullable = false)
     private Long spentTime;
@@ -88,14 +81,6 @@ public class ConversationEntity {
 
     public void setDate(LocalDateTime date) {
         this.date = date;
-    }
-
-    public List<String> getEmbeddings() {
-        return embeddings;
-    }
-
-    public void setEmbeddings(List<String> embeddings) {
-        this.embeddings = embeddings;
     }
 
     public Long getTokens() {

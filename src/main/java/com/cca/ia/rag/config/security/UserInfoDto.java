@@ -1,9 +1,9 @@
 package com.cca.ia.rag.config.security;
 
-import java.util.*;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.security.core.GrantedAuthority;
+
+import java.util.*;
 
 /**
  * @author ccsw

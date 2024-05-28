@@ -1,7 +1,6 @@
 package com.cca.ia.rag.collection;
 
-import com.cca.ia.rag.collection.model.CollectionDto;
-import com.cca.ia.rag.collection.model.CollectionEntity;
+import com.cca.ia.rag.collection.model.*;
 
 import java.util.List;
 
@@ -22,4 +21,10 @@ public interface CollectionService {
     CollectionEntity findById(Long id);
 
     void save(CollectionDto data);
+
+    List<CollectionPropertyDto> findProperties(Long collectionId);
+
+    List<CollectionPropertyEntity> findPrompts(Long collectionId);
+
+    void saveProperties(Long collectionId, CollectionPropertyRequestDto data);
 }
