@@ -1,4 +1,4 @@
-package com.cca.ia.rag.chat.database;
+package com.cca.ia.rag.chat.assistant.database;
 
 import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.jdbc.core.JdbcTemplate;
