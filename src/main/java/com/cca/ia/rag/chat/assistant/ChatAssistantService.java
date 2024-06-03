@@ -6,15 +6,15 @@ import com.cca.ia.rag.document.DocumentUtils;
 import com.cca.ia.rag.document.embedding.EmbeddingService;
 import com.cca.ia.rag.document.model.DocumentChunkEntity;
 import com.cca.ia.rag.document.model.DocumentChunkRepository;
-import org.springframework.ai.chat.ChatClient;
-import org.springframework.ai.chat.ChatResponse;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
 import org.springframework.ai.document.Document;
-import org.springframework.ai.openai.OpenAiChatClient;
+import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -170,9 +170,9 @@ public class ChatAssistantService implements AssistantService {
 
     }
 
-    private ChatClient getChatClient(RequestContextDto request) {
+    private ChatModel getChatClient(RequestContextDto request) {
         String apiKey = request.getProperty("apiKey");
-        return new OpenAiChatClient(new OpenAiApi(apiKey));
+        return new OpenAiChatModel(new OpenAiApi(apiKey));
     }
 
 }

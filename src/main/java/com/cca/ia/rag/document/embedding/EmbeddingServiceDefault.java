@@ -10,10 +10,10 @@ import org.springframework.ai.chroma.ChromaApi;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.document.id.IdGenerator;
 import org.springframework.ai.document.id.RandomIdGenerator;
-import org.springframework.ai.embedding.EmbeddingClient;
-import org.springframework.ai.openai.OpenAiEmbeddingClient;
+import org.springframework.ai.embedding.EmbeddingModel;
+import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.openai.api.OpenAiApi;
-import org.springframework.ai.vectorsore.ChromaVectorStore;
+import org.springframework.ai.vectorstore.ChromaVectorStore;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,14 +36,14 @@ public class EmbeddingServiceDefault implements EmbeddingService {
 
     private IdGenerator idGenerator = new RandomIdGenerator();
 
-    private EmbeddingClient getEmbeddingClient(Long collectionId) {
+    private EmbeddingModel getEmbeddingClient(Long collectionId) {
 
         List<CollectionPropertyDto> data = collectionService.findProperties(collectionId);
 
         String apiKey = data.stream().filter(e -> e.getKey().equals("apiKey")).findFirst().orElseThrow().getValue();
 
         OpenAiApi openAiApi = new OpenAiApi(apiKey);
-        OpenAiEmbeddingClient embeddingClient = new OpenAiEmbeddingClient(openAiApi);
+        OpenAiEmbeddingModel embeddingClient = new OpenAiEmbeddingModel(openAiApi);
 
         return embeddingClient;
     }
@@ -162,8 +162,8 @@ public class EmbeddingServiceDefault implements EmbeddingService {
 
     private VectorStore getVectorStore(CollectionEntity collection) {
 
-        EmbeddingClient embeddingClient = getEmbeddingClient(collection.getId());
-        ChromaVectorStore vectorStore = new ChromaVectorStore(embeddingClient, chromaApi, collection.getName());
+        EmbeddingModel embeddingClient = getEmbeddingClient(collection.getId());
+        ChromaVectorStore vectorStore = new ChromaVectorStore(embeddingClient, chromaApi, collection.getName(), true);
 
         try {
             vectorStore.afterPropertiesSet();
